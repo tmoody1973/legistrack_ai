@@ -160,6 +160,7 @@ export const BillPodcastOverview: React.FC<BillPodcastOverviewProps> = ({ bill, 
         .select('*')
         .eq('content_type', 'audio')
         .eq('source_type', 'bill')
+        .eq('source_id', bill.id) // Use the specific bill ID
         .eq('generator', 'elevenlabs')
         .eq('status', 'completed')
         .order('created_at', { ascending: false })
@@ -279,7 +280,10 @@ export const BillPodcastOverview: React.FC<BillPodcastOverviewProps> = ({ bill, 
       setError(null);
       
       console.log('🎙️ Generating audio for podcast overview...');
-      const response = await elevenLabsService.generateAudio(podcastOverview);
+      const response = await elevenLabsService.generateBillPodcastAudio({
+        ...bill,
+        podcast_overview: podcastOverview
+      });
       
       if (response.audio_url) {
         setAudioUrl(response.audio_url);

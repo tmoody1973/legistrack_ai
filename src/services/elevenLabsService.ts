@@ -234,7 +234,8 @@ class ElevenLabsService {
   private async storeAudioInDatabase(
     text: string,
     audioUrl: string,
-    duration: number
+    duration: number,
+    billId?: string
   ): Promise<string> {
     try {
       // Get current session to ensure consistent user ID
@@ -257,7 +258,7 @@ class ElevenLabsService {
           user_id: userId, // Use session user ID for consistency with RLS
           content_type: 'audio',
           source_type: 'bill',
-          source_id: 'podcast-overview', // Generic source ID for podcast overviews
+          source_id: billId || 'podcast-overview', // Use bill ID if provided
           generator: 'elevenlabs',
           generation_params: {
             voice_id: this.voiceId,
@@ -268,8 +269,8 @@ class ElevenLabsService {
             text,
             duration: durationInt
           },
-          title: `Podcast Overview`,
-          description: `Audio version of podcast overview`,
+          title: `Podcast Overview${billId ? ` - ${billId}` : ''}`,
+          description: `Audio version of podcast overview${billId ? ` for ${billId}` : ''}`,
           duration: durationInt, // Ensure this is an integer
           status: 'completed',
           created_at: new Date().toISOString(),

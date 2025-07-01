@@ -72,10 +72,14 @@ export const VideoBriefingSection: React.FC = () => {
       ) : videos.length > 0 ? (
         <div className="space-y-4">
           {videos.map(video => (
-            <div 
+            <div
               key={video.video_id}
-              className="flex items-center bg-gray-50 rounded-lg p-3 border border-gray-200 hover:border-primary-200 transition-colors cursor-pointer"
-              onClick={() => window.location.href = `/video?id=${video.video_id}`}
+              className={`flex items-center p-3 rounded-lg cursor-pointer transition-colors ${
+                selectedVideo?.video_id === video.video_id
+                  ? 'bg-primary-50 border border-primary-200'
+                  : 'bg-gray-50 border border-gray-200 hover:border-primary-200'
+              }`}
+              onClick={() => (video.status === 'completed' || video.status === 'ready') && setSelectedVideo(video)}
             >
               <div className="w-16 h-12 bg-gray-200 rounded flex-shrink-0 mr-3 flex items-center justify-center">
                 {video.still_image_thumbnail_url || video.gif_thumbnail_url ? (
@@ -96,14 +100,6 @@ export const VideoBriefingSection: React.FC = () => {
                   <Calendar className="w-3 h-3 mr-1" />
                   <span>{formatDate(video.created_at)}</span>
                   
-                  {video.duration && (
-                    <>
-                      <span className="mx-1">•</span>
-                      <Clock className="w-3 h-3 mr-1" />
-                      <span>{Math.floor(video.duration / 60)}:{(video.duration % 60).toString().padStart(2, '0')}</span>
-                    </>
-                  )}
-                  
                   {video.status === 'processing' && (
                     <span className="ml-2 bg-yellow-100 text-yellow-800 px-1.5 py-0.5 rounded text-xs">
                       Processing
@@ -116,9 +112,7 @@ export const VideoBriefingSection: React.FC = () => {
         </div>
       ) : (
         <div className="text-center py-8">
-          <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <Video className="w-8 h-8 text-gray-400" />
-          </div>
+          <Video className="w-12 h-12 text-gray-300 mx-auto mb-4" />
           <h3 className="text-lg font-medium text-gray-900 mb-2">No Video Briefings Yet</h3>
           <p className="text-gray-600 mb-6">
             Generate your first personalized video briefing to get started.

@@ -5,7 +5,6 @@ import { Header } from './components/layout/Header';
 import { HeroSection } from './components/sections/HeroSection';
 import { FeaturesSection } from './components/sections/FeaturesSection';
 import { HowItWorksSection } from './components/sections/HowItWorksSection';
-import { TestimonialsSection } from './components/sections/TestimonialsSection';
 import { CtaSection } from './components/sections/CtaSection';
 import { Footer } from './components/sections/Footer';
 import { BillsPage } from './pages/BillsPage';
@@ -42,7 +41,6 @@ const LandingPage: React.FC = () => {
         <HeroSection onLogin={() => openAuthModal('login')} onSignup={() => openAuthModal('signup')} />
         <FeaturesSection onSignup={() => openAuthModal('signup')} />
         <HowItWorksSection />
-        <TestimonialsSection />
         <CtaSection onSignup={() => openAuthModal('signup')} />
       </main>
       <Footer />

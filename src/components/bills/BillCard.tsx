@@ -42,12 +42,17 @@ export const BillCard: React.FC<BillCardProps> = ({
   };
 
   const formatDate = (dateString?: string) => {
-    if (!dateString) return 'Unknown';
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-    });
+    if (!dateString) return 'Date not available';
+    
+    try {
+      return new Date(dateString).toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+      });
+    } catch (e) {
+      return 'Invalid date';
+    }
   };
 
   const getStatusColor = (status?: string) => {
@@ -68,15 +73,20 @@ export const BillCard: React.FC<BillCardProps> = ({
 
   const getTimeAgo = (dateString?: string) => {
     if (!dateString) return '';
-    const date = new Date(dateString);
-    const now = new Date();
-    const diffTime = Math.abs(now.getTime() - date.getTime());
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
     
-    if (diffDays === 1) return '1 day ago';
-    if (diffDays < 30) return `${diffDays} days ago`;
-    if (diffDays < 365) return `${Math.floor(diffDays / 30)} months ago`;
-    return `${Math.floor(diffDays / 365)} years ago`;
+    try {
+      const date = new Date(dateString);
+      const now = new Date();
+      const diffTime = Math.abs(now.getTime() - date.getTime());
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      
+      if (diffDays === 1) return '1 day ago';
+      if (diffDays < 30) return `${diffDays} days ago`;
+      if (diffDays < 365) return `${Math.floor(diffDays / 30)} months ago`;
+      return `${Math.floor(diffDays / 365)} years ago`;
+    } catch (e) {
+      return '';
+    }
   };
 
   const handleTrackClick = async (e: React.MouseEvent) => {
@@ -228,7 +238,7 @@ export const BillCard: React.FC<BillCardProps> = ({
           <div className="flex items-center space-x-2">
             <Calendar className="w-4 h-4 text-gray-400" />
             <span className="text-sm text-gray-600">
-              Introduced {formatDate(bill.introduced_date)}
+              {bill.introduced_date ? `Introduced ${formatDate(bill.introduced_date)}` : 'Introduction date not available'}
             </span>
           </div>
           

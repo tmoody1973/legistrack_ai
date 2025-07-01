@@ -9,13 +9,13 @@ interface HeroSectionProps {
 
 export const HeroSection: React.FC<HeroSectionProps> = ({ onLogin, onSignup }) => {
   return (
-    <section className="relative bg-gradient-to-br from-gray-50 via-white to-primary-50 py-20 lg:py-32 overflow-hidden">
+    <section className="relative w-full bg-gradient-to-br from-gray-50 via-white to-primary-50 py-20 lg:py-32 overflow-hidden">
       {/* Background decoration */}
       <div className="absolute inset-0 bg-grid-pattern opacity-5"></div>
       <div className="absolute top-20 right-20 w-72 h-72 bg-primary-100 rounded-full blur-3xl opacity-30"></div>
       <div className="absolute bottom-20 left-20 w-96 h-96 bg-blue-100 rounded-full blur-3xl opacity-20"></div>
 
-      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="relative w-full px-4 sm:px-6 lg:px-8 max-w-[1920px] mx-auto">
         <div className="grid lg:grid-cols-2 gap-12 lg:gap-20 items-center">
           {/* Left Column - Content */}
           <div className="animate-slide-up">

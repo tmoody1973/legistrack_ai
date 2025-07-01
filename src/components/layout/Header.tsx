@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Menu, X, Bell, User } from 'lucide-react';
 import { Button } from '../common/Button';
 import { useAuth } from '../../hooks/useAuth';
@@ -11,17 +11,30 @@ interface HeaderProps {
 export const Header: React.FC<HeaderProps> = ({ onLogin, onSignup }) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const { authState } = useAuth();
+  const [isScrolled, setIsScrolled] = useState(false);
+
+  // Add scroll event listener
+  useEffect(() => {
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 10);
+    };
+    
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   return (
-    <header className="bg-white shadow-sm border-b border-gray-100 sticky top-0 z-50">
-      <div className="px-6 py-4">
-        <div className="flex items-center justify-between">
+    <header className={`w-full sticky top-0 z-50 transition-all duration-300 ${
+      isScrolled ? 'bg-white shadow-md' : 'bg-white/80 backdrop-blur-sm'
+    }`}>
+      <div className="w-full px-4 sm:px-6 lg:px-8 max-w-[1920px] mx-auto">
+        <div className="flex items-center justify-between py-4">
           <div className="flex items-center space-x-4">
             <div className="flex items-center space-x-2">
               <img 
                 src="/legisTRACK copy.png" 
                 alt="LegisTrack Logo" 
-                className="h-20 w-auto" // 2x bigger logo
+                className="h-12 w-auto" 
               />
             </div>
           </div>
@@ -53,7 +66,7 @@ export const Header: React.FC<HeaderProps> = ({ onLogin, onSignup }) => {
 
         {/* Mobile Navigation */}
         {isMobileMenuOpen && !authState.user && (
-          <div className="md:hidden py-4 border-t border-gray-100 animate-fade-in">
+          <div className="md:hidden py-4 border-t border-gray-100 animate-fade-in w-full">
             <div className="space-y-3">
               {!authState.user && (
                 <div className="pt-3 space-y-2">

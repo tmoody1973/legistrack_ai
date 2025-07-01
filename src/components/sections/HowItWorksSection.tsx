@@ -62,8 +62,8 @@ export const HowItWorksSection: React.FC = () => {
   ];
 
   return (
-    <section id="how-it-works" className="py-20 lg:py-32 bg-gradient-to-br from-gray-50 to-primary-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <section id="how-it-works" className="w-full py-20 lg:py-32 bg-gradient-to-br from-gray-50 to-primary-50">
+      <div className="w-full px-4 sm:px-6 lg:px-8 max-w-[1920px] mx-auto">
         {/* Section Header */}
         <div className="text-center mb-16">
           <div className="inline-flex items-center px-4 py-2 bg-white text-primary-700 rounded-full text-sm font-medium mb-6 shadow-sm">
@@ -102,7 +102,7 @@ export const HowItWorksSection: React.FC = () => {
         </div>
 
         {/* Demo Preview */}
-        <div className="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
+        <div className="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden w-full">
           <div className="bg-gradient-to-r from-primary-500 to-blue-600 px-6 py-4">
             <h3 className="text-white font-semibold text-lg">Live Demo Preview</h3>
             <p className="text-primary-100 text-sm">See LegisTrack AI in action</p>

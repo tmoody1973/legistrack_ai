@@ -53,6 +53,7 @@ export default {
       spacing: {
         '18': '4.5rem',
         '88': '22rem',
+        '128': '32rem',
       },
       animation: {
         'fade-in': 'fadeIn 0.5s ease-in-out',
@@ -72,7 +73,15 @@ export default {
           '0%, 100%': { transform: 'translateY(0)' },
           '50%': { transform: 'translateY(-10px)' },
         }
-      }
+      },
+      maxWidth: {
+        '8xl': '88rem',
+        '9xl': '96rem',
+        '10xl': '104rem',
+      },
+      screens: {
+        '3xl': '1920px',
+      },
     },
   },
   plugins: [],

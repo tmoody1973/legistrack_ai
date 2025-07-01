@@ -87,8 +87,8 @@ export const FeaturesSection: React.FC<FeaturesSectionProps> = ({ onSignup }) =>
   ];
 
   return (
-    <section id="features" className="py-20 lg:py-32 bg-white">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <section id="features" className="w-full py-20 lg:py-32 bg-white">
+      <div className="w-full px-4 sm:px-6 lg:px-8 max-w-[1920px] mx-auto">
         {/* Section Header */}
         <div className="text-center mb-16">
           <div className="inline-flex items-center px-4 py-2 bg-primary-100 text-primary-700 rounded-full text-sm font-medium mb-6">

@@ -36,9 +36,9 @@ const LandingPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen w-full overflow-x-hidden">
       <Header onLogin={() => openAuthModal('login')} onSignup={() => openAuthModal('signup')} />
-      <main>
+      <main className="w-full">
         <HeroSection onLogin={() => openAuthModal('login')} onSignup={() => openAuthModal('signup')} />
         <FeaturesSection onSignup={() => openAuthModal('signup')} />
         <HowItWorksSection />
@@ -93,9 +93,9 @@ const Dashboard: React.FC = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="bg-white shadow-sm border-b border-gray-100">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen w-full overflow-x-hidden">
+      <header className="bg-white shadow-sm border-b border-gray-100 w-full">
+        <div className="w-full px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center space-x-8">
               <div className="flex items-center">
@@ -139,7 +139,7 @@ const Dashboard: React.FC = () => {
       </header>
       
       {/* Mobile Navigation */}
-      <div className="md:hidden bg-white border-b border-gray-100">
+      <div className="md:hidden bg-white border-b border-gray-100 w-full">
         <div className="px-4 py-2">
           <select
             value={currentPage}
@@ -155,8 +155,8 @@ const Dashboard: React.FC = () => {
         </div>
       </div>
       
-      <main className="py-8">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <main className="py-8 w-full">
+        <div className="w-full px-4 sm:px-6 lg:px-8">
           {renderPage()}
         </div>
       </main>
@@ -170,7 +170,7 @@ const AppContent: React.FC = () => {
 
   if (authState.loading) {
     return (
-      <div className="min-h-screen bg-white flex items-center justify-center">
+      <div className="min-h-screen w-full flex items-center justify-center">
         <div className="text-center">
           <div className="w-8 h-8 border-4 border-primary-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
           <p className="text-gray-600">Loading...</p>

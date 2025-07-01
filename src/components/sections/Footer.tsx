@@ -33,8 +33,8 @@ export const Footer: React.FC = () => {
   ];
 
   return (
-    <footer className="bg-gray-900 text-white">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+    <footer className="w-full bg-gray-900 text-white">
+      <div className="w-full px-4 sm:px-6 lg:px-8 py-16 max-w-[1920px] mx-auto">
         {/* Main Footer Content */}
         <div className="grid lg:grid-cols-4 gap-8 mb-12">
           {/* Brand Section */}
@@ -119,8 +119,8 @@ export const Footer: React.FC = () => {
         </div>
 
         {/* Newsletter Signup */}
-        <div className="border-t border-gray-800 pt-8 mb-8">
-          <div className="bg-gradient-to-r from-primary-900 to-blue-900 rounded-xl p-6 lg:p-8">
+        <div className="border-t border-gray-800 pt-8 mb-8 w-full">
+          <div className="bg-gradient-to-r from-primary-900 to-blue-900 rounded-xl p-6 lg:p-8 w-full">
             <div className="grid lg:grid-cols-2 gap-6 items-center">
               <div>
                 <h3 className="text-xl font-semibold text-white mb-2">
@@ -145,7 +145,7 @@ export const Footer: React.FC = () => {
         </div>
 
         {/* Bottom Bar */}
-        <div className="border-t border-gray-800 pt-8 flex flex-col sm:flex-row justify-between items-center space-y-4 sm:space-y-0">
+        <div className="border-t border-gray-800 pt-8 flex flex-col sm:flex-row justify-between items-center space-y-4 sm:space-y-0 w-full">
           <p className="text-gray-400 text-sm">
             © {currentYear} LegisTrack AI. All rights reserved.
           </p>

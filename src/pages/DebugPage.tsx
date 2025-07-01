@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ApiTestPanel } from '../components/debug/ApiTestPanel';
 import { EdgeFunctionDebug } from '../components/debug/EdgeFunctionDebug';
-import { Button } from '../common/Button';
+import { Button } from '../components/common/Button';
 import { SubjectImportService } from '../services/subjectImportService';
 import { billDataSyncService } from '../services/billDataSyncService';
 import { billSummaryService } from '../services/billSummaryService';

@@ -4,6 +4,7 @@ import { BillCard } from './BillCard';
 import { BillFilters } from './BillFilters';
 import { Button } from '../common/Button';
 import { billService } from '../../services/billService';
+import { billSyncService } from '../../services/billSyncService';
 import type { Bill, BillSearchParams } from '../../types';
 
 interface BillListProps {
@@ -28,6 +29,12 @@ export const BillList: React.FC<BillListProps> = ({ onBillClick, initialFilters 
   const [lastSyncTime, setLastSyncTime] = useState<Date | null>(null);
   const [cacheInfo, setCacheInfo] = useState<string>('');
   const [searchSource, setSearchSource] = useState<'database' | 'api'>('database');
+  const [syncStats, setSyncStats] = useState<{
+    totalBills: number;
+    recentlySynced: number;
+    needsUpdate: number;
+    lastSyncTime: string | null;
+  } | null>(null);
 
   // Load bills with optimized caching
   const loadBills = async (params: Partial<BillSearchParams> = {}) => {
@@ -104,7 +111,21 @@ export const BillList: React.FC<BillListProps> = ({ onBillClick, initialFilters 
   // Initial load with database-first approach
   useEffect(() => {
     loadBills();
+    loadSyncStats();
   }, []);
+
+  // Load sync stats
+  const loadSyncStats = async () => {
+    try {
+      const stats = await billSyncService.getSyncStats();
+      setSyncStats(stats);
+      if (stats.lastSyncTime) {
+        setLastSyncTime(new Date(stats.lastSyncTime));
+      }
+    } catch (error) {
+      console.error('Error loading sync stats:', error);
+    }
+  };
 
   // Optimized search handler with debouncing
   const handleSearch = (query: string) => {
@@ -143,10 +164,7 @@ export const BillList: React.FC<BillListProps> = ({ onBillClick, initialFilters 
       
       console.log('🔄 Starting optimized bill sync...');
       
-      const result = await billService.syncBillsFromCongress({ 
-        limit: 25, // Reduced batch size
-        congress: 118 // Focus on current congress
-      });
+      const result = await billSyncService.syncAllBills(50);
       
       setLastSyncTime(new Date());
       
@@ -157,6 +175,9 @@ export const BillList: React.FC<BillListProps> = ({ onBillClick, initialFilters 
       if (result.count > 0) {
         setError(null);
       }
+
+      // Update sync stats
+      await loadSyncStats();
     } catch (err) {
       setError(`Failed to sync bills: ${err.message}`);
       console.error('Error syncing bills:', err);
@@ -256,17 +277,26 @@ export const BillList: React.FC<BillListProps> = ({ onBillClick, initialFilters 
         onAPISearch={searchBillsFromAPI}
       />
 
-      {/* Enhanced Optimization Notice */}
-      <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-        <h4 className="font-medium text-green-800 mb-2">🚀 Enhanced Search & Tracking:</h4>
-        <ul className="text-sm text-green-700 space-y-1">
-          <li>✓ <strong>Hybrid search</strong> - Database for speed, API for comprehensive results</li>
-          <li>✓ <strong>Auto-database storage</strong> - Bills automatically saved when tracked</li>
-          <li>✓ <strong>Smart caching</strong> - Reduced API calls by 80%</li>
-          <li>✓ <strong>API search mode</strong> - Search all bills on Congress.gov directly</li>
-          <li>✓ <strong>Intelligent tracking</strong> - Track any bill, even if not in local database</li>
-        </ul>
-      </div>
+      {/* Sync Stats */}
+      {syncStats && (
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <h4 className="font-medium text-blue-800 mb-2">Sync Status:</h4>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+            <div className="bg-white rounded p-2 border border-blue-100">
+              <span className="font-medium">Total Bills:</span> {syncStats.totalBills}
+            </div>
+            <div className="bg-white rounded p-2 border border-blue-100">
+              <span className="font-medium">Recently Synced:</span> {syncStats.recentlySynced}
+            </div>
+            <div className="bg-white rounded p-2 border border-blue-100">
+              <span className="font-medium">Needs Update:</span> {syncStats.needsUpdate}
+            </div>
+            <div className="bg-white rounded p-2 border border-blue-100">
+              <span className="font-medium">Last Sync:</span> {syncStats.lastSyncTime ? new Date(syncStats.lastSyncTime).toLocaleTimeString() : 'Never'}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Success/Error Messages */}
       {error && (
@@ -303,6 +333,7 @@ export const BillList: React.FC<BillListProps> = ({ onBillClick, initialFilters 
               key={bill.id}
               bill={bill}
               onClick={() => onBillClick?.(bill)}
+              isFromAPI={searchSource === 'api'}
             />
           ))}
         </div>

@@ -24,7 +24,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onLogin, onSignup }) =
               Now in Beta - Join the Future of Civic Engagement
             </div>
 
-            {/* LegisTrack Logo - Left-justified and 4x larger */}
+            {/* LegisTrack Logo - Left-justified and smaller */}
             <div className="flex justify-start mb-6">
               <img 
                 src="/legisTRACK copy copy.png" 
@@ -33,13 +33,21 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onLogin, onSignup }) =
               />
             </div>
 
-            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-gray-900 leading-tight mb-6">
-              Making Democracy{' '}
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary-500 to-blue-600">
-                Accessible
-              </span>{' '}
-              Through AI
-            </h1>
+            <div className="flex flex-col lg:flex-row items-start lg:items-center gap-8">
+              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-gray-900 leading-tight mb-6 lg:mb-0">
+                Making Democracy{' '}
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary-500 to-blue-600">
+                  Accessible
+                </span>{' '}
+                Through AI
+              </h1>
+              
+              <img 
+                src="/files_1192970-1751377605869-unnamed.png" 
+                alt="Bill Analysis Screenshot" 
+                className="rounded-lg shadow-xl border border-gray-200 max-w-full lg:max-w-md"
+              />
+            </div>
 
             <p className="text-xl text-gray-600 leading-relaxed mb-8 max-w-2xl">
               Transform complex legislation into clear, personalized insights. Track bills that matter to you, 

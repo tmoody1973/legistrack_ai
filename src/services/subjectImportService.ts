@@ -1,4 +1,5 @@
 import { supabase } from '../lib/supabase';
+import { congressApiService } from './congressApiService';
 
 export interface BillSubject {
   id: string;
@@ -9,14 +10,7 @@ export interface BillSubject {
 }
 
 export class SubjectImportService {
-  private static readonly CONGRESS_API_BASE = 'https://api.congress.gov/v3';
-  private static readonly API_KEY = import.meta.env.VITE_CONGRESS_API_KEY;
-
   static async importAllSubjects(): Promise<{ success: boolean; count: number; message: string }> {
-    if (!this.API_KEY) {
-      throw new Error('Congress API key not configured');
-    }
-
     try {
       console.log('🔄 Starting subject import...');
       
@@ -45,15 +39,11 @@ export class SubjectImportService {
 
   private static async importLegislativeSubjects(): Promise<BillSubject[]> {
     try {
-      const response = await fetch(
-        `${this.CONGRESS_API_BASE}/bill/subjects?format=json&api_key=${this.API_KEY}&limit=250`
-      );
+      const data = await congressApiService.makeRequest('/bill/subjects', {
+        format: 'json',
+        limit: '250'
+      });
 
-      if (!response.ok) {
-        throw new Error(`Congress API error: ${response.status} ${response.statusText}`);
-      }
-
-      const data = await response.json();
       const subjects = data.subjects || [];
 
       console.log(`📥 Processing ${subjects.length} legislative subjects...`);
@@ -89,15 +79,11 @@ export class SubjectImportService {
 
   private static async importPolicyAreas(): Promise<BillSubject[]> {
     try {
-      const response = await fetch(
-        `${this.CONGRESS_API_BASE}/bill/policy-areas?format=json&api_key=${this.API_KEY}&limit=250`
-      );
+      const data = await congressApiService.makeRequest('/bill/policy-areas', {
+        format: 'json',
+        limit: '250'
+      });
 
-      if (!response.ok) {
-        throw new Error(`Congress API error: ${response.status} ${response.statusText}`);
-      }
-
-      const data = await response.json();
       const policyAreas = data.policyAreas || [];
 
       console.log(`📥 Processing ${policyAreas.length} policy areas...`);
@@ -174,17 +160,11 @@ export class SubjectImportService {
               return;
             }
             
-            // Fetch subjects for this bill
-            const response = await fetch(
-              `${this.CONGRESS_API_BASE}/bill/${congress}/${billType.toLowerCase()}/${number}/subjects?format=json&api_key=${this.API_KEY}`
+            // Fetch subjects for this bill using congressApiService
+            const data = await congressApiService.makeRequest(
+              `/bill/${congress}/${billType.toLowerCase()}/${number}/subjects`,
+              { format: 'json' }
             );
-            
-            if (!response.ok) {
-              console.warn(`Error fetching subjects for bill ${bill.id}: ${response.status}`);
-              return;
-            }
-            
-            const data = await response.json();
             
             // Extract policy area
             if (data.subjects?.policyArea?.name) {

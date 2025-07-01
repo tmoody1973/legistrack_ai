@@ -11,6 +11,8 @@ import { geminiService } from '../services/geminiService';
 import { openaiService } from '../services/openaiService';
 import { supabase } from '../lib/supabase';
 import { Loader2, CheckCircle, AlertCircle, Database, Tag, FileText, FileText as FileText2, Book, RefreshCw, Globe, Volume2 } from 'lucide-react';
+import { SyncDashboard } from '../components/debug/SyncDashboard';
+import { billSyncService } from '../services/billSyncService';
 
 export const DebugPage: React.FC = () => {
   const [importingSubjects, setImportingSubjects] = useState(false);
@@ -29,6 +31,8 @@ export const DebugPage: React.FC = () => {
   const [webSearchResult, setWebSearchResult] = useState<any>(null);
   const [generatingPodcastOverviews, setGeneratingPodcastOverviews] = useState(false);
   const [podcastOverviewsResult, setPodcastOverviewsResult] = useState<any>(null);
+  const [usingSyncService, setUsingSyncService] = useState(false);
+  const [syncServiceResult, setSyncServiceResult] = useState<any>(null);
 
   const handleImportSubjects = async () => {
     try {
@@ -211,6 +215,24 @@ export const DebugPage: React.FC = () => {
     }
   };
 
+  // NEW: Handle using the new sync service
+  const handleUseSyncService = async () => {
+    try {
+      setUsingSyncService(true);
+      setSyncServiceResult(null);
+      
+      const result = await billSyncService.syncAllBills(50);
+      setSyncServiceResult(result);
+    } catch (error) {
+      setSyncServiceResult({
+        success: false,
+        message: `Error using sync service: ${error.message}`
+      });
+    } finally {
+      setUsingSyncService(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -222,6 +244,79 @@ export const DebugPage: React.FC = () => {
         </div>
         
         <div className="space-y-8">
+          {/* NEW: Sync Dashboard */}
+          <SyncDashboard />
+          
+          {/* NEW: Sync Service Panel */}
+          <div className="bg-white rounded-lg border border-gray-200 p-6">
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h2 className="text-xl font-semibold text-gray-900 flex items-center">
+                  <RefreshCw className="w-5 h-5 mr-2 text-primary-500" />
+                  New Bill Sync Service
+                </h2>
+                <p className="text-gray-600">Comprehensive bill data synchronization with enhanced features</p>
+              </div>
+              
+              <Button 
+                onClick={handleUseSyncService} 
+                disabled={usingSyncService}
+                variant="primary"
+              >
+                {usingSyncService ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Syncing...
+                  </>
+                ) : (
+                  <>
+                    <RefreshCw className="w-4 h-4 mr-2" />
+                    Sync 50 Bills
+                  </>
+                )}
+              </Button>
+            </div>
+            
+            {/* Sync Service Results */}
+            {syncServiceResult && (
+              <div className={`p-4 rounded-lg border ${
+                syncServiceResult.success 
+                  ? 'bg-success-50 border-success-200 text-success-700' 
+                  : 'bg-error-50 border-error-200 text-error-700'
+              }`}>
+                <div className="flex items-center space-x-2 mb-2">
+                  {syncServiceResult.success ? (
+                    <CheckCircle className="w-5 h-5 flex-shrink-0" />
+                  ) : (
+                    <AlertCircle className="w-5 h-5 flex-shrink-0" />
+                  )}
+                  <div>
+                    <p className="font-medium">{syncServiceResult.message}</p>
+                    {syncServiceResult.success && syncServiceResult.count !== undefined && (
+                      <p className="text-sm">Synced {syncServiceResult.count} bills</p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+            
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mt-4">
+              <h3 className="font-medium text-blue-800 mb-2 flex items-center">
+                <Database className="w-4 h-4 mr-2" />
+                About the New Sync Service
+              </h3>
+              <ul className="text-sm text-blue-700 space-y-1">
+                <li>• <strong>Comprehensive Data Collection</strong>: Fetches all available bill data in one process</li>
+                <li>• <strong>Intelligent Batching</strong>: Processes bills in optimized batches to respect API limits</li>
+                <li>• <strong>Error Handling</strong>: Built-in retry mechanism and detailed error reporting</li>
+                <li>• <strong>Performance Optimized</strong>: Caching, parallel processing, and efficient database operations</li>
+                <li>• <strong>Scheduled Sync</strong>: Can be configured to run automatically at regular intervals</li>
+                <li>• <strong>Detailed Logging</strong>: Comprehensive logging for monitoring and troubleshooting</li>
+                <li>• <strong>Sync Statistics</strong>: Tracks sync status and performance metrics</li>
+              </ul>
+            </div>
+          </div>
+          
           {/* NEW: Podcast Overview Generation Panel */}
           <div className="bg-white rounded-lg border border-gray-200 p-6">
             <div className="flex items-center justify-between mb-6">

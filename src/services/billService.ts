@@ -1,7 +1,8 @@
 import { congressApiService } from './congressApiService';
 import { supabase } from '../lib/supabase';
 import { openaiService } from './openaiService';
-import type { Bill, BillSearchParams, PaginatedResponse, BillSubject } from '../types';
+import { aiTaggingService } from './aiTaggingService'; // Import the new service
+import type { Bill, BillSearchParams, PaginatedResponse, BillSubject, BillTag } from '../types';
 
 class BillService {
   private cache = new Map<string, { data: any; timestamp: number }>();
@@ -444,12 +445,41 @@ class BillService {
         console.warn(`Could not fetch subjects for bill ${billId}:`, error);
       });
 
+      // Generate and store tags for this bill
+      this.generateAndStoreTagsForBill(storedBill).catch(error => {
+        console.warn(`Could not generate tags for bill ${billId}:`, error);
+      });
+
       console.log('✅ Bill fetched from API and stored in database');
       return storedBill;
 
     } catch (error) {
       console.error('❌ Error ensuring bill in database:', error);
       return null;
+    }
+  }
+
+  // Generate and store tags for a bill
+  private async generateAndStoreTagsForBill(bill: Bill): Promise<void> {
+    try {
+      // Check if bill already has tags
+      const { data: existingTags, error: tagError } = await supabase
+        .from('bill_tags')
+        .select('id')
+        .eq('bill_id', bill.id);
+      
+      if (!tagError && existingTags && existingTags.length > 0) {
+        console.log(`Bill ${bill.id} already has ${existingTags.length} tags, skipping tag generation`);
+        return;
+      }
+      
+      // Generate tags for the bill
+      const tags = await aiTaggingService.generateTagsForBill(bill);
+      
+      // Save tags to database
+      await aiTaggingService.saveTagsForBill(bill.id, tags);
+    } catch (error) {
+      console.warn(`Error generating and storing tags for bill ${bill.id}:`, error);
     }
   }
 
@@ -470,12 +500,21 @@ class BillService {
       if (data) {
         console.log('📦 Bill found in database');
         
+        // Get tags for the bill
+        const tags = await aiTaggingService.getTagsForBill(billId);
+        
         // NEW: Fetch comprehensive analysis and attach it to the bill
         try {
           const analysis = await openaiService.getComprehensiveAnalysis(billId);
           if (analysis) {
             data.comprehensive_analysis = analysis;
             console.log('✅ Attached comprehensive analysis to bill');
+          }
+          
+          // Add tags to the bill
+          if (tags && tags.length > 0) {
+            data.tags = tags;
+            console.log('✅ Attached tags to bill');
           }
         } catch (analysisError) {
           console.warn('⚠️ Could not fetch comprehensive analysis:', analysisError);
@@ -488,13 +527,20 @@ class BillService {
       console.log('🔄 Bill not in database, fetching from API...');
       const bill = await this.ensureBillInDatabase(billId);
       
-      // NEW: If bill was found, fetch comprehensive analysis
+      // NEW: If bill was found, fetch comprehensive analysis and tags
       if (bill) {
         try {
           const analysis = await openaiService.getComprehensiveAnalysis(billId);
           if (analysis) {
             bill.comprehensive_analysis = analysis;
             console.log('✅ Attached comprehensive analysis to bill');
+          }
+          
+          // Get tags for the bill
+          const tags = await aiTaggingService.getTagsForBill(billId);
+          if (tags && tags.length > 0) {
+            bill.tags = tags;
+            console.log('✅ Attached tags to bill');
           }
         } catch (analysisError) {
           console.warn('⚠️ Could not fetch comprehensive analysis:', analysisError);
@@ -609,6 +655,9 @@ class BillService {
       // Fetch subjects for these bills (in background)
       this.fetchSubjectsForBills(transformedBills.map(bill => bill.id));
 
+      // Generate tags for these bills (in background)
+      this.generateTagsForBills(transformedBills);
+
       return {
         success: true,
         count: data?.length || 0,
@@ -659,7 +708,32 @@ class BillService {
     }
   }
 
-  // Optimized getBills with better database queries
+  // Generate tags for multiple bills in background
+  private async generateTagsForBills(bills: Bill[]): Promise<void> {
+    try {
+      console.log(`🏷️ Generating tags for ${bills.length} bills in background...`);
+      
+      // Process bills in batches
+      const batchSize = 5;
+      for (let i = 0; i < bills.length; i += batchSize) {
+        const batch = bills.slice(i, i + batchSize);
+        
+        // Process each bill in the batch
+        await aiTaggingService.processBillBatch(batch);
+        
+        // Add a delay between batches
+        if (i + batchSize < bills.length) {
+          await new Promise(resolve => setTimeout(resolve, 2000));
+        }
+      }
+      
+      console.log('✅ Finished generating tags for bills');
+    } catch (error) {
+      console.warn('Error generating tags for bills:', error);
+    }
+  }
+
+  // Optimized getBills with better database queries and tag support
   async getBills(params: BillSearchParams = {}): Promise<PaginatedResponse<Bill>> {
     try {
       // Create cache key for this query
@@ -711,6 +785,95 @@ class BillService {
           }
         }
 
+        // NEW: Policy interest filtering using bill_tags table
+        if (params.policy_interests && params.policy_interests.length > 0) {
+          // First, find subject IDs that match the user's interests
+          const { data: matchingSubjects, error: subjectError } = await supabase
+            .from('bill_subjects')
+            .select('id, name')
+            .or(params.policy_interests.map(interest => `name.ilike.%${interest}%`).join(','));
+          
+          if (!subjectError && matchingSubjects && matchingSubjects.length > 0) {
+            const subjectIds = matchingSubjects.map(subject => subject.id);
+            
+            // Get bill IDs with these subjects that meet the confidence threshold
+            const minConfidence = params.min_confidence_score || 50;
+            
+            const { data: tagData, error: tagError } = await supabase
+              .from('bill_tags')
+              .select('bill_id, subject_id')
+              .in('subject_id', subjectIds)
+              .gte('confidence_score', minConfidence);
+            
+            if (!tagError && tagData && tagData.length > 0) {
+              // If we need to match all interests (AND logic)
+              if (params.match_all_interests) {
+                // Group by bill_id and count unique subject_ids
+                const billSubjectCounts = new Map<string, Set<string>>();
+                
+                tagData.forEach(tag => {
+                  if (!billSubjectCounts.has(tag.bill_id)) {
+                    billSubjectCounts.set(tag.bill_id, new Set([tag.subject_id]));
+                  } else {
+                    billSubjectCounts.get(tag.bill_id)!.add(tag.subject_id);
+                  }
+                });
+                
+                // Filter bills that have tags for all matching subjects
+                const matchingBillIds = Array.from(billSubjectCounts.entries())
+                  .filter(([_, subjectSet]) => {
+                    // Check if the bill has at least one tag for each interest
+                    return subjectIds.every(subjectId => 
+                      Array.from(subjectSet).some(s => s === subjectId)
+                    );
+                  })
+                  .map(([billId, _]) => billId);
+                
+                if (matchingBillIds.length > 0) {
+                  query = query.in('id', matchingBillIds);
+                } else {
+                  // No bills match all interests, return empty result
+                  return {
+                    data: [],
+                    pagination: {
+                      page: params.page || 1,
+                      limit: params.limit || 20,
+                      total: 0,
+                      pages: 0,
+                    },
+                  };
+                }
+              } else {
+                // OR logic: Any bill that matches any interest
+                const billIds = tagData.map(tag => tag.bill_id);
+                query = query.in('id', billIds);
+              }
+            } else {
+              // No tags found for these subjects, return empty result
+              return {
+                data: [],
+                pagination: {
+                  page: params.page || 1,
+                  limit: params.limit || 20,
+                  total: 0,
+                  pages: 0,
+                },
+              };
+            }
+          } else {
+            // No matching subjects found, return empty result
+            return {
+              data: [],
+              pagination: {
+                page: params.page || 1,
+                limit: params.limit || 20,
+                total: 0,
+                pages: 0,
+              },
+            };
+          }
+        }
+
         if (params.introduced_after) {
           query = query.gte('introduced_date', params.introduced_after);
         }
@@ -730,6 +893,10 @@ class BillService {
         
         if (sortField === 'relevance' && params.query) {
           query = query.order('introduced_date', { ascending: false });
+        } else if (sortField === 'confidence' && params.policy_interests && params.policy_interests.length > 0) {
+          // For confidence sorting, we need to handle this after fetching the data
+          // as it requires joining with the bill_tags table
+          query = query.order('updated_at', { ascending: false });
         } else {
           query = query.order(sortField, sortOrder);
         }
@@ -747,8 +914,33 @@ class BillService {
           throw error;
         }
 
+        // NEW: Fetch tags for each bill
+        const billsWithTags = await Promise.all((data || []).map(async (bill) => {
+          try {
+            const tags = await aiTaggingService.getTagsForBill(bill.id);
+            return {
+              ...bill,
+              tags
+            };
+          } catch (error) {
+            console.warn(`Could not fetch tags for bill ${bill.id}:`, error);
+            return bill;
+          }
+        }));
+
+        // NEW: If sorting by confidence score, sort the results
+        let sortedBills = billsWithTags;
+        if (sortField === 'confidence' && params.policy_interests && params.policy_interests.length > 0) {
+          // Sort by highest confidence score for any matching tag
+          sortedBills = billsWithTags.sort((a, b) => {
+            const aMaxConfidence = a.tags ? Math.max(...a.tags.map(t => t.confidence_score), 0) : 0;
+            const bMaxConfidence = b.tags ? Math.max(...b.tags.map(t => t.confidence_score), 0) : 0;
+            return sortOrder.ascending ? aMaxConfidence - bMaxConfidence : bMaxConfidence - aMaxConfidence;
+          });
+        }
+
         // NEW: Fetch comprehensive analysis for each bill
-        const billsWithAnalysis = await Promise.all((data || []).map(async (bill) => {
+        const billsWithAnalysis = await Promise.all(sortedBills.map(async (bill) => {
           try {
             const analysis = await openaiService.getComprehensiveAnalysis(bill.id);
             if (analysis) {
@@ -800,20 +992,27 @@ class BillService {
           throw error;
         }
 
+        // NEW: Fetch tags for the bill
+        const tags = await aiTaggingService.getTagsForBill(billId);
+        
         // NEW: Fetch comprehensive analysis and attach it to the bill
         try {
           const analysis = await openaiService.getComprehensiveAnalysis(billId);
           if (analysis) {
             return {
               ...data,
-              comprehensive_analysis: analysis
+              comprehensive_analysis: analysis,
+              tags: tags
             };
           }
         } catch (analysisError) {
           console.warn(`Could not fetch comprehensive analysis for bill ${billId}:`, analysisError);
         }
 
-        return data;
+        return {
+          ...data,
+          tags: tags
+        };
       });
     } catch (error) {
       console.error('❌ Error fetching bill:', error);
@@ -869,20 +1068,34 @@ class BillService {
         console.warn(`Could not fetch subjects for bill ${billId}:`, error);
       });
 
+      // Generate tags for this bill (in background)
+      aiTaggingService.generateTagsForBill(data).then(tags => {
+        aiTaggingService.saveTagsForBill(billId, tags);
+      }).catch(error => {
+        console.warn(`Could not generate tags for bill ${billId}:`, error);
+      });
+
+      // NEW: Fetch tags for the bill
+      const tags = await aiTaggingService.getTagsForBill(billId);
+
       // NEW: Fetch comprehensive analysis and attach it to the bill
       try {
         const analysis = await openaiService.getComprehensiveAnalysis(billId);
         if (analysis) {
           return {
             ...data,
-            comprehensive_analysis: analysis
+            comprehensive_analysis: analysis,
+            tags: tags
           };
         }
       } catch (analysisError) {
         console.warn(`Could not fetch comprehensive analysis for bill ${billId}:`, analysisError);
       }
 
-      return data;
+      return {
+        ...data,
+        tags: tags
+      };
     } catch (error) {
       console.error('❌ Error fetching and caching bill:', error);
       return null;
@@ -1002,8 +1215,22 @@ class BillService {
           throw error;
         }
 
+        // NEW: Fetch tags for each bill
+        const billsWithTags = await Promise.all((data || []).map(async (bill) => {
+          try {
+            const tags = await aiTaggingService.getTagsForBill(bill.id);
+            return {
+              ...bill,
+              tags
+            };
+          } catch (error) {
+            console.warn(`Could not fetch tags for bill ${bill.id}:`, error);
+            return bill;
+          }
+        }));
+
         // NEW: Fetch comprehensive analysis for each bill
-        const billsWithAnalysis = await Promise.all((data || []).map(async (bill) => {
+        const billsWithAnalysis = await Promise.all(billsWithTags.map(async (bill) => {
           try {
             const analysis = await openaiService.getComprehensiveAnalysis(bill.id);
             if (analysis) {
@@ -1023,6 +1250,31 @@ class BillService {
     } catch (error) {
       console.error('❌ Error fetching trending bills:', error);
       throw error;
+    }
+  }
+
+  // Get bills by user interests
+  async getBillsByUserInterests(
+    interests: string[],
+    limit: number = 10,
+    requireAllInterests: boolean = false
+  ): Promise<Bill[]> {
+    try {
+      if (!interests || interests.length === 0) {
+        return this.getTrendingBills(limit);
+      }
+      
+      console.log(`🔍 Finding bills matching user interests: ${interests.join(', ')}`);
+      
+      return await aiTaggingService.getBillsByUserInterests(
+        interests,
+        70, // Minimum confidence score
+        limit,
+        requireAllInterests
+      );
+    } catch (error) {
+      console.error('❌ Error fetching bills by user interests:', error);
+      return this.getTrendingBills(limit); // Fallback to trending bills
     }
   }
 

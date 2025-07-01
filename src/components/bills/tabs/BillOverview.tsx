@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../../hooks/useAuth';
 import { supabase } from '../../../lib/supabase';
-import { TrendingUp, Users, MapPin, AlertCircle, Edit2, Loader2, Globe, CheckCircle, Clock, BookOpen, FileText, Calendar, RefreshCw, BarChart3, MessageSquare, Share2, ExternalLink, Volume2, Tag } from 'lucide-react';
+import { TrendingUp, Users, MapPin, AlertCircle, Edit2, Loader2, Globe, CheckCircle, Clock, BookOpen, FileText, Calendar, RefreshCw, BarChart3, MessageSquare, Share2, ExternalLink, Volume2, Tag, ThumbsUp, ThumbsDown } from 'lucide-react';
 import { Button } from '../../common/Button';
 import { openaiService } from '../../../services/openaiService';
 import { billSummaryService } from '../../../services/billSummaryService';
 import { PersonalizedImpact } from '../../dashboard/PersonalizedImpact';
-import type { Bill } from '../../../types';
+import { aiTaggingService } from '../../../services/aiTaggingService';
+import type { Bill, BillTag } from '../../../types';
 
 interface BillOverviewProps {
   bill: Bill;
@@ -36,8 +37,11 @@ export const BillOverview: React.FC<BillOverviewProps> = ({
   const [analysisError, setAnalysisError] = useState<string | null>(null);
   const [analysisId, setAnalysisId] = useState<string | null>(null);
   const [analysisChecked, setAnalysisChecked] = useState(false);
-  const [podcastOverview, setPodcastOverview] = useState<string | null>(null); // NEW: State for podcast overview
-  const [generatingPodcast, setGeneratingPodcast] = useState(false); // NEW: State for podcast generation loading
+  const [podcastOverview, setPodcastOverview] = useState<string | null>(null); // State for podcast overview
+  const [generatingPodcast, setGeneratingPodcast] = useState(false); // State for podcast generation loading
+  const [billTags, setBillTags] = useState<BillTag[]>([]);
+  const [loadingTags, setLoadingTags] = useState(false);
+  const [generatingTags, setGeneratingTags] = useState(false);
 
   useEffect(() => {
     fetchBillSubjects();
@@ -51,8 +55,11 @@ export const BillOverview: React.FC<BillOverviewProps> = ({
     // Try to get comprehensive analysis if it exists
     fetchComprehensiveAnalysis();
 
-    // NEW: Fetch podcast overview
+    // Fetch podcast overview
     fetchPodcastOverview();
+
+    // Fetch bill tags
+    fetchBillTags();
   }, [bill.id]);
 
   const fetchBillSubjects = async () => {
@@ -123,7 +130,7 @@ export const BillOverview: React.FC<BillOverviewProps> = ({
     }
   };
 
-  // NEW: Fetch podcast overview
+  // Fetch podcast overview
   const fetchPodcastOverview = async () => {
     try {
       if (bill.podcast_overview) {
@@ -160,6 +167,45 @@ export const BillOverview: React.FC<BillOverviewProps> = ({
     } catch (error) {
       console.error('❌ Error fetching podcast overview:', error);
       // Don't set error state for this, just log the warning
+    }
+  };
+
+  // Fetch bill tags
+  const fetchBillTags = async () => {
+    try {
+      setLoadingTags(true);
+      
+      // Check if bill already has tags
+      if (bill.tags && bill.tags.length > 0) {
+        setBillTags(bill.tags);
+        console.log('✅ Using tags from bill object');
+        setLoadingTags(false);
+        return;
+      }
+      
+      // Fetch tags from database
+      const tags = await aiTaggingService.getTagsForBill(bill.id);
+      
+      if (tags && tags.length > 0) {
+        setBillTags(tags);
+        
+        // Update the bill object with the tags
+        if (onUpdateBill) {
+          onUpdateBill({
+            ...bill,
+            tags
+          });
+        }
+        
+        console.log('✅ Loaded tags from database');
+      } else {
+        // If no tags exist, generate them
+        generateTags();
+      }
+    } catch (error) {
+      console.error('❌ Error fetching bill tags:', error);
+    } finally {
+      setLoadingTags(false);
     }
   };
 
@@ -210,7 +256,38 @@ export const BillOverview: React.FC<BillOverviewProps> = ({
     }
   };
 
-  // NEW: Handle manual podcast overview generation
+  // Generate tags for the bill
+  const generateTags = async () => {
+    try {
+      setGeneratingTags(true);
+      
+      // Generate tags for the bill
+      const tags = await aiTaggingService.generateTagsForBill(bill);
+      
+      // Save tags to database
+      await aiTaggingService.saveTagsForBill(bill.id, tags);
+      
+      // Fetch the saved tags (to get the IDs)
+      const savedTags = await aiTaggingService.getTagsForBill(bill.id);
+      setBillTags(savedTags);
+      
+      // Update the bill object with the tags
+      if (onUpdateBill) {
+        onUpdateBill({
+          ...bill,
+          tags: savedTags
+        });
+      }
+      
+      console.log('✅ Generated and saved tags for bill');
+    } catch (error) {
+      console.error('❌ Error generating tags:', error);
+    } finally {
+      setGeneratingTags(false);
+    }
+  };
+
+  // Handle manual podcast overview generation
   const handleGeneratePodcastOverview = async () => {
     if (!openaiService.isAvailable()) {
       alert('OpenAI API is not available. Please configure your API key.');
@@ -283,6 +360,52 @@ export const BillOverview: React.FC<BillOverviewProps> = ({
       month: 'long',
       day: 'numeric',
     });
+  };
+
+  // Handle tag feedback
+  const handleTagFeedback = async (tagId: string, isAccurate: boolean) => {
+    try {
+      await aiTaggingService.submitTagFeedback(tagId, isAccurate);
+      
+      // Update the tag in the UI
+      setBillTags(prevTags => 
+        prevTags.map(tag => 
+          tag.id === tagId 
+            ? {
+                ...tag,
+                user_feedback: {
+                  accurate: isAccurate,
+                  feedback_count: (tag.user_feedback?.feedback_count || 0) + 1,
+                  last_feedback: new Date().toISOString()
+                }
+              }
+            : tag
+        )
+      );
+      
+      // Update the bill object with the updated tags
+      if (onUpdateBill && bill.tags) {
+        onUpdateBill({
+          ...bill,
+          tags: bill.tags.map(tag => 
+            tag.id === tagId 
+              ? {
+                  ...tag,
+                  user_feedback: {
+                    accurate: isAccurate,
+                    feedback_count: (tag.user_feedback?.feedback_count || 0) + 1,
+                    last_feedback: new Date().toISOString()
+                  }
+                }
+              : tag
+          )
+        });
+      }
+      
+      console.log(`✅ Submitted feedback for tag ${tagId}: ${isAccurate ? 'accurate' : 'inaccurate'}`);
+    } catch (error) {
+      console.error('❌ Error submitting tag feedback:', error);
+    }
   };
 
   return (
@@ -521,7 +644,108 @@ export const BillOverview: React.FC<BillOverviewProps> = ({
         )}
       </div>
 
-      {/* NEW: Podcast Overview Section */}
+      {/* Bill Tags Section */}
+      <div>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xl font-semibold text-gray-900 flex items-center">
+            <Tag className="w-5 h-5 mr-2 text-primary-500" />
+            Bill Tags
+          </h2>
+          {!generatingTags && billTags.length === 0 && !loadingTags && (
+            <Button 
+              onClick={generateTags}
+              variant="outline"
+              size="sm"
+            >
+              <Tag className="w-4 h-4 mr-2" />
+              Generate Tags
+            </Button>
+          )}
+        </div>
+
+        {loadingTags || generatingTags ? (
+          <div className="flex items-center justify-center py-8 bg-white rounded-lg border border-gray-200">
+            <Loader2 className="w-6 h-6 animate-spin text-primary-500 mr-2" />
+            <span className="text-gray-600">
+              {generatingTags ? 'Generating tags...' : 'Loading tags...'}
+            </span>
+          </div>
+        ) : billTags.length > 0 ? (
+          <div className="bg-white rounded-lg border border-gray-200 p-4">
+            <div className="flex flex-wrap gap-3">
+              {billTags.map((tag) => (
+                <div 
+                  key={tag.id} 
+                  className="bg-primary-50 border border-primary-100 rounded-lg p-2 flex flex-col"
+                >
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="font-medium text-primary-800 text-sm">{tag.name}</span>
+                    <span className="bg-primary-100 text-primary-700 text-xs px-2 py-0.5 rounded-full">
+                      {tag.confidence_score}%
+                    </span>
+                  </div>
+                  <div className="text-xs text-primary-600 mb-2">
+                    {tag.type === 'policy' ? 'Policy Area' : 'Legislative Subject'}
+                  </div>
+                  
+                  {/* Feedback buttons */}
+                  <div className="flex items-center justify-between mt-1 pt-1 border-t border-primary-100">
+                    <span className="text-xs text-primary-600">Accurate?</span>
+                    <div className="flex space-x-2">
+                      <button 
+                        onClick={() => handleTagFeedback(tag.id, true)}
+                        className={`p-1 rounded ${
+                          tag.user_feedback?.accurate === true 
+                            ? 'bg-green-100 text-green-600' 
+                            : 'text-gray-400 hover:text-green-600'
+                        }`}
+                        title="This tag is accurate"
+                      >
+                        <ThumbsUp className="w-3 h-3" />
+                      </button>
+                      <button 
+                        onClick={() => handleTagFeedback(tag.id, false)}
+                        className={`p-1 rounded ${
+                          tag.user_feedback?.accurate === false 
+                            ? 'bg-red-100 text-red-600' 
+                            : 'text-gray-400 hover:text-red-600'
+                        }`}
+                        title="This tag is not accurate"
+                      >
+                        <ThumbsDown className="w-3 h-3" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+            
+            <div className="mt-4 text-right">
+              <Button variant="outline" size="sm" onClick={generateTags}>
+                <RefreshCw className="w-4 h-4 mr-2" />
+                Regenerate Tags
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <div className="bg-gray-50 rounded-lg p-6 text-center">
+            <Tag className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-gray-900 mb-2">No Tags Available</h3>
+            <p className="text-gray-600 max-w-md mx-auto mb-6">
+              Generate AI-powered tags to categorize this bill by policy areas and legislative subjects.
+            </p>
+            <Button 
+              onClick={generateTags}
+              disabled={generatingTags}
+            >
+              <Tag className="w-4 h-4 mr-2" />
+              Generate Tags
+            </Button>
+          </div>
+        )}
+      </div>
+
+      {/* Podcast Overview Section */}
       <div>
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-xl font-semibold text-gray-900 flex items-center">

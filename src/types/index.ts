@@ -65,6 +65,7 @@ export interface Bill {
   full_text_content?: string; // NEW: Added full text content
   podcast_overview?: string; // NEW: Added podcast overview field
   comprehensive_analysis?: any; // NEW: Added comprehensive analysis field
+  tags?: BillTag[]; // NEW: Added tags field
 }
 
 // NEW: Subject type for bill subjects
@@ -74,6 +75,21 @@ export interface BillSubject {
   type: 'legislative' | 'policy';
   count?: number;
   updateDate?: string;
+}
+
+// NEW: Bill tag type
+export interface BillTag {
+  id: string;
+  subject_id: string;
+  name: string;
+  type: 'legislative' | 'policy';
+  confidence_score: number;
+  source: 'AI' | 'manual' | 'feedback';
+  user_feedback?: {
+    accurate: boolean | null;
+    feedback_count: number;
+    last_feedback: string | null;
+  };
 }
 
 export interface BillAction {
@@ -204,11 +220,14 @@ export interface BillSearchParams {
   sponsor_state?: string;
   sponsor_party?: string;
   subjects?: string[]; // NEW: Added subjects array for filtering
+  policy_interests?: string[]; // NEW: Added policy interests for filtering
+  min_confidence_score?: number; // NEW: Added minimum confidence score for filtering
+  match_all_interests?: boolean; // NEW: Added boolean for matching all vs any interests
   introduced_after?: string;
   introduced_before?: string;
   page?: number;
   limit?: number;
-  sort?: 'relevance' | 'date' | 'title' | 'status';
+  sort?: 'relevance' | 'date' | 'title' | 'status' | 'confidence';
   order?: 'asc' | 'desc';
 }
 

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ApiTestPanel } from '../components/debug/ApiTestPanel';
 import { EdgeFunctionDebug } from '../components/debug/EdgeFunctionDebug';
-import { Button } from '../components/common/Button';
+import { Button } from '../common/Button';
 import { SubjectImportService } from '../services/subjectImportService';
 import { billDataSyncService } from '../services/billDataSyncService';
 import { billSummaryService } from '../services/billSummaryService';
@@ -13,6 +13,8 @@ import { supabase } from '../lib/supabase';
 import { Loader2, CheckCircle, AlertCircle, Database, Tag, FileText, FileText as FileText2, Book, RefreshCw, Globe, Volume2 } from 'lucide-react';
 import { SyncDashboard } from '../components/debug/SyncDashboard';
 import { billSyncService } from '../services/billSyncService';
+import { TaggingDebugPanel } from '../components/debug/TaggingDebugPanel';
+import { aiTaggingService } from '../services/aiTaggingService';
 
 export const DebugPage: React.FC = () => {
   const [importingSubjects, setImportingSubjects] = useState(false);
@@ -33,6 +35,8 @@ export const DebugPage: React.FC = () => {
   const [podcastOverviewsResult, setPodcastOverviewsResult] = useState<any>(null);
   const [usingSyncService, setUsingSyncService] = useState(false);
   const [syncServiceResult, setSyncServiceResult] = useState<any>(null);
+  const [processingTags, setProcessingTags] = useState(false);
+  const [tagsResult, setTagsResult] = useState<any>(null);
 
   const handleImportSubjects = async () => {
     try {
@@ -233,6 +237,24 @@ export const DebugPage: React.FC = () => {
     }
   };
 
+  // NEW: Handle processing bill tags
+  const handleProcessBillTags = async () => {
+    try {
+      setProcessingTags(true);
+      setTagsResult(null);
+      
+      const result = await aiTaggingService.processAllBills(20, true);
+      setTagsResult(result);
+    } catch (error) {
+      setTagsResult({
+        success: false,
+        message: `Error processing bill tags: ${error.message}`
+      });
+    } finally {
+      setProcessingTags(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -244,6 +266,81 @@ export const DebugPage: React.FC = () => {
         </div>
         
         <div className="space-y-8">
+          {/* NEW: AI Tagging Debug Panel */}
+          <TaggingDebugPanel />
+          
+          {/* NEW: Process Bill Tags Button */}
+          <div className="bg-white rounded-lg border border-gray-200 p-6">
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h2 className="text-xl font-semibold text-gray-900 flex items-center">
+                  <Tag className="w-5 h-5 mr-2 text-primary-500" />
+                  Batch Process Bill Tags
+                </h2>
+                <p className="text-gray-600">Process multiple bills for AI tagging in a single operation</p>
+              </div>
+              
+              <Button 
+                onClick={handleProcessBillTags} 
+                disabled={processingTags}
+                variant="primary"
+              >
+                {processingTags ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Processing...
+                  </>
+                ) : (
+                  <>
+                    <Tag className="w-4 h-4 mr-2" />
+                    Process 20 Bills
+                  </>
+                )}
+              </Button>
+            </div>
+            
+            {/* Tags Result */}
+            {tagsResult && (
+              <div className={`p-4 rounded-lg border ${
+                tagsResult.success 
+                  ? 'bg-success-50 border-success-200 text-success-700' 
+                  : 'bg-error-50 border-error-200 text-error-700'
+              }`}>
+                <div className="flex items-center space-x-2 mb-2">
+                  {tagsResult.success ? (
+                    <CheckCircle className="w-5 h-5 flex-shrink-0" />
+                  ) : (
+                    <AlertCircle className="w-5 h-5 flex-shrink-0" />
+                  )}
+                  <div>
+                    <p className="font-medium">{tagsResult.message}</p>
+                    {tagsResult.success && (
+                      <p className="text-sm">
+                        Processed: {tagsResult.processed}, Failed: {tagsResult.failed}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+            
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mt-4">
+              <h3 className="font-medium text-blue-800 mb-2 flex items-center">
+                <Tag className="w-4 h-4 mr-2" />
+                About Batch Tag Processing
+              </h3>
+              <ul className="text-sm text-blue-700 space-y-1">
+                <li>• <strong>Efficient Processing</strong>: Tags up to 20 bills in a single operation</li>
+                <li>• <strong>Smart Filtering</strong>: Only processes bills that don't already have tags</li>
+                <li>• <strong>AI-Powered Analysis</strong>: Uses OpenAI or Gemini to analyze bill content</li>
+                <li>• <strong>Confidence Scoring</strong>: Assigns confidence scores to each tag</li>
+                <li>• <strong>Batch Processing</strong>: Handles bills in small batches to respect API limits</li>
+                <li>• <strong>Error Handling</strong>: Continues processing even if some bills fail</li>
+                <li>• <strong>Detailed Reporting</strong>: Provides comprehensive results of the operation</li>
+              </ul>
+            </div>
+          </div>
+          
           {/* NEW: Sync Dashboard */}
           <SyncDashboard />
           

@@ -141,6 +141,41 @@ export const BillCard: React.FC<BillCardProps> = ({
     onClick?.();
   };
 
+  // Render tags if available
+  const renderTags = () => {
+    if (!bill.tags || bill.tags.length === 0) {
+      return null;
+    }
+
+    // Sort tags by confidence score and take top 3
+    const topTags = [...bill.tags]
+      .sort((a, b) => b.confidence_score - a.confidence_score)
+      .slice(0, 3);
+
+    return (
+      <div className="flex items-start space-x-2 mb-4">
+        <Tag className="w-4 h-4 text-primary-500 mt-0.5" />
+        <div className="flex flex-wrap gap-1">
+          {topTags.map((tag) => (
+            <span
+              key={tag.id}
+              className="px-2 py-0.5 bg-primary-50 text-primary-700 text-xs rounded-full flex items-center"
+              title={`Confidence: ${tag.confidence_score}%`}
+            >
+              {tag.name}
+              <span className="ml-1 text-xs text-primary-500">{tag.confidence_score}%</span>
+            </span>
+          ))}
+          {bill.tags.length > 3 && (
+            <span className="px-2 py-0.5 bg-gray-100 text-gray-700 text-xs rounded-full">
+              +{bill.tags.length - 3} more
+            </span>
+          )}
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div
       className={`bg-white rounded-xl border hover:border-primary-300 hover:shadow-lg transition-all duration-300 cursor-pointer group ${
@@ -209,6 +244,9 @@ export const BillCard: React.FC<BillCardProps> = ({
             </span>
           </div>
         )}
+
+        {/* Tags */}
+        {renderTags()}
 
         {/* Summary */}
         {bill.summary && (

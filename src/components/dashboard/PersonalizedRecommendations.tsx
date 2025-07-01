@@ -3,6 +3,7 @@ import { Sparkles, Loader2, AlertTriangle, Star, RefreshCw } from 'lucide-react'
 import { Button } from '../common/Button';
 import { BillCard } from '../bills/BillCard';
 import { recommendationService } from '../../services/recommendationService';
+import { billService } from '../../services/billService';
 import { useAuth } from '../../hooks/useAuth';
 import type { Bill } from '../../types';
 
@@ -16,6 +17,7 @@ export const PersonalizedRecommendations: React.FC<PersonalizedRecommendationsPr
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [matchAllInterests, setMatchAllInterests] = useState(false);
 
   // Load recommendations
   useEffect(() => {
@@ -35,11 +37,50 @@ export const PersonalizedRecommendations: React.FC<PersonalizedRecommendationsPr
       }
       setError(null);
       
-      const result = await recommendationService.getPersonalizedRecommendations(forceRefresh);
-      setRecommendations(result);
+      // Get user interests from profile
+      const { data: userProfile, error: profileError } = await supabase
+        .from('users')
+        .select('preferences')
+        .eq('id', authState.user?.id)
+        .single();
+      
+      if (profileError) {
+        throw profileError;
+      }
+      
+      const userInterests = userProfile?.preferences?.interests || [];
+      
+      if (userInterests.length === 0) {
+        // Fall back to trending bills if no interests
+        const trendingBills = await billService.getTrendingBills(10);
+        setRecommendations(trendingBills);
+      } else {
+        // Use the new method to get bills by user interests
+        const interestBills = await billService.getBillsByUserInterests(
+          userInterests,
+          10,
+          matchAllInterests
+        );
+        
+        if (interestBills.length === 0) {
+          // Fall back to trending bills if no matches
+          const trendingBills = await billService.getTrendingBills(10);
+          setRecommendations(trendingBills);
+        } else {
+          setRecommendations(interestBills);
+        }
+      }
     } catch (err) {
       console.error('Error loading recommendations:', err);
       setError('Failed to load recommendations. Please try again.');
+      
+      // Fall back to trending bills
+      try {
+        const trendingBills = await billService.getTrendingBills(10);
+        setRecommendations(trendingBills);
+      } catch (fallbackError) {
+        console.error('Error getting trending bills:', fallbackError);
+      }
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -48,6 +89,12 @@ export const PersonalizedRecommendations: React.FC<PersonalizedRecommendationsPr
 
   // Refresh recommendations
   const handleRefresh = () => {
+    loadRecommendations(true);
+  };
+
+  // Toggle match all interests
+  const handleToggleMatchType = () => {
+    setMatchAllInterests(!matchAllInterests);
     loadRecommendations(true);
   };
 
@@ -92,24 +139,34 @@ export const PersonalizedRecommendations: React.FC<PersonalizedRecommendationsPr
           </p>
         </div>
         
-        <Button 
-          variant="outline" 
-          size="sm" 
-          onClick={handleRefresh}
-          disabled={refreshing}
-        >
-          {refreshing ? (
-            <>
-              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              Refreshing...
-            </>
-          ) : (
-            <>
-              <RefreshCw className="w-4 h-4 mr-2" />
-              Refresh
-            </>
-          )}
-        </Button>
+        <div className="flex space-x-2">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={handleToggleMatchType}
+          >
+            {matchAllInterests ? 'Match Any Interest' : 'Match All Interests'}
+          </Button>
+          
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={handleRefresh}
+            disabled={refreshing}
+          >
+            {refreshing ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Refreshing...
+              </>
+            ) : (
+              <>
+                <RefreshCw className="w-4 h-4 mr-2" />
+                Refresh
+              </>
+            )}
+          </Button>
+        </div>
       </div>
       
       {/* Error Message */}

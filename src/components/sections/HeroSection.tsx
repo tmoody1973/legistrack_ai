@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { ArrowRight, Play, CheckCircle, ExternalLink } from 'lucide-react';
 import { Button } from '../common/Button';
 
@@ -43,9 +43,9 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onLogin, onSignup }) =
               </h1>
               
               <img 
-                src="/files_1192970-1751377605869-unnamed.png" 
+                src="/Opera Snapshot_2025-07-01_093548_legistrack.xyz.png" 
                 alt="Bill Analysis Screenshot" 
-                className="rounded-lg shadow-xl border border-gray-200 max-w-full lg:max-w-md"
+                className="rounded-lg shadow-2xl border border-gray-200 max-w-full lg:max-w-md"
               />
             </div>
 

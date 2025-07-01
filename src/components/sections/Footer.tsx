@@ -34,7 +34,7 @@ export const Footer: React.FC = () => {
 
   return (
     <footer className="w-full bg-gray-900 text-white">
-      <div className="w-full px-4 sm:px-6 lg:px-8 py-16 max-w-[1920px] mx-auto">
+      <div className="w-full max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8 py-16">
         {/* Main Footer Content */}
         <div className="grid lg:grid-cols-4 gap-8 mb-12">
           {/* Brand Section */}

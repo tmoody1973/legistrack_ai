@@ -95,7 +95,7 @@ const Dashboard: React.FC = () => {
   return (
     <div className="min-h-screen w-full overflow-x-hidden">
       <header className="bg-white shadow-sm border-b border-gray-100 w-full">
-        <div className="w-full px-4 sm:px-6 lg:px-8">
+        <div className="w-full max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center space-x-8">
               <div className="flex items-center">
@@ -156,7 +156,7 @@ const Dashboard: React.FC = () => {
       </div>
       
       <main className="py-8 w-full">
-        <div className="w-full px-4 sm:px-6 lg:px-8">
+        <div className="w-full max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8">
           {renderPage()}
         </div>
       </main>

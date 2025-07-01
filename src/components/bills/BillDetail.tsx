@@ -38,12 +38,17 @@ export const BillDetail: React.FC<BillDetailProps> = ({ bill, onBack }) => {
   }, [bill.id]);
 
   const formatDate = (dateString?: string) => {
-    if (!dateString) return 'Unknown';
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-    });
+    if (!dateString) return 'Date not available';
+    
+    try {
+      return new Date(dateString).toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+      });
+    } catch (e) {
+      return 'Invalid date';
+    }
   };
 
   const getStatusColor = (status?: string) => {
@@ -126,7 +131,7 @@ export const BillDetail: React.FC<BillDetailProps> = ({ bill, onBack }) => {
           <div className="flex items-center space-x-2">
             <Calendar className="w-5 h-5 text-gray-400" />
             <span className="text-gray-600">
-              Introduced {formatDate(currentBill.introduced_date)}
+              {currentBill.introduced_date ? `Introduced ${formatDate(currentBill.introduced_date)}` : 'Introduction date not available'}
             </span>
           </div>
           

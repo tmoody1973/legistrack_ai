@@ -29,7 +29,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onLogin, onSignup }) =
               <img 
                 src="/legisTRACK copy copy.png" 
                 alt="LegisTrack Logo" 
-                className="h-128 w-auto" 
+                className="h-32 w-auto" 
               />
             </div>
 

@@ -1,5 +1,6 @@
 import React from 'react';
 import { UserPlus, Settings, Bell, MessageCircle, Video } from 'lucide-react';
+import { Button } from '../common/Button';
 
 interface StepProps {
   number: number;
@@ -51,7 +52,7 @@ export const HowItWorksSection: React.FC = () => {
     {
       icon: <Video className="w-4 h-4" />,
       title: 'Get Video Briefings',
-      description: 'Receive personalized video explanations from AI policy experts on complex legislation.'
+      description: 'Receive personalized video explanations from AI policy experts tailored to your interests and location.'
     },
     {
       icon: <MessageCircle className="w-4 h-4" />,

@@ -41,6 +41,26 @@ export const BillCard: React.FC<BillCardProps> = ({
     }
   };
 
+  // Helper function to safely convert subjects to array
+  const getSubjectsArray = (subjects: any): string[] => {
+    if (!subjects) return [];
+    
+    // If it's already an array
+    if (Array.isArray(subjects)) return subjects;
+    
+    // If it's a JSON string, parse it
+    if (typeof subjects === 'string') {
+      try {
+        const parsed = JSON.parse(subjects);
+        return Array.isArray(parsed) ? parsed : [];
+      } catch {
+        return [];
+      }
+    }
+    
+    return [];
+  };
+
   const formatDate = (dateString?: string) => {
     if (!dateString) return 'Date not available';
     
@@ -298,26 +318,29 @@ export const BillCard: React.FC<BillCardProps> = ({
         )}
 
         {/* Subjects */}
-        {bill.subjects && bill.subjects.length > 0 && (
-          <div className="flex items-start space-x-2 mb-4">
-            <Tag className="w-4 h-4 text-gray-400 mt-0.5" />
-            <div className="flex flex-wrap gap-1">
-              {bill.subjects.slice(0, 3).map((subject, index) => (
-                <span
-                  key={index}
-                  className="px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded-full hover:bg-gray-200 transition-colors"
-                >
-                  {subject}
-                </span>
-              ))}
-              {bill.subjects.length > 3 && (
-                <span className="px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded-full">
-                  +{bill.subjects.length - 3} more
-                </span>
-              )}
+        {(() => {
+          const subjectsArray = getSubjectsArray(bill.subjects);
+          return subjectsArray.length > 0 && (
+            <div className="flex items-start space-x-2 mb-4">
+              <Tag className="w-4 h-4 text-gray-400 mt-0.5" />
+              <div className="flex flex-wrap gap-1">
+                {subjectsArray.slice(0, 3).map((subject, index) => (
+                  <span
+                    key={index}
+                    className="px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded-full hover:bg-gray-200 transition-colors"
+                  >
+                    {subject}
+                  </span>
+                ))}
+                {subjectsArray.length > 3 && (
+                  <span className="px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded-full">
+                    +{subjectsArray.length - 3} more
+                  </span>
+                )}
+              </div>
             </div>
-          </div>
-        )}
+          );
+        })()}
 
         {/* AI Analysis Preview */}
         {bill.ai_analysis?.passagePrediction?.probability && (

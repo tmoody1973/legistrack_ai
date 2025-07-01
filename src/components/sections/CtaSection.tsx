@@ -9,7 +9,7 @@ interface CtaSectionProps {
 export const CtaSection: React.FC<CtaSectionProps> = ({ onSignup }) => {
   return (
     <section className="w-full py-20 lg:py-32 bg-gradient-to-br from-primary-500 to-blue-600 text-white">
-      <div className="w-full px-4 sm:px-6 lg:px-8 max-w-[1920px] mx-auto">
+      <div className="w-full max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid lg:grid-cols-2 gap-12 items-center">
           <div>
             <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-6">

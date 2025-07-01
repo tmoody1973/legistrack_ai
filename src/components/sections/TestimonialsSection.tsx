@@ -99,7 +99,7 @@ export const TestimonialsSection: React.FC = () => {
 
   return (
     <section className="w-full py-20 lg:py-32 bg-gray-50">
-      <div className="w-full px-4 sm:px-6 lg:px-8 max-w-[1920px] mx-auto">
+      <div className="w-full max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8">
         {/* Section Header */}
         <div className="text-center mb-16">
           <div className="inline-flex items-center px-4 py-2 bg-primary-100 text-primary-700 rounded-full text-sm font-medium mb-6">
@@ -145,12 +145,15 @@ export const TestimonialsSection: React.FC = () => {
         {/* Logos */}
         <div className="mt-20">
           <p className="text-center text-gray-500 mb-8">Trusted by organizations across the country</p>
-          <div className="flex flex-wrap justify-center items-center gap-8 opacity-70">
-            <img src="https://images.pexels.com/photos/3184338/pexels-photo-3184338.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1" alt="Organization logo" className="h-12 grayscale" />
-            <img src="https://images.pexels.com/photos/3184339/pexels-photo-3184339.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1" alt="Organization logo" className="h-12 grayscale" />
-            <img src="https://images.pexels.com/photos/3184360/pexels-photo-3184360.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1" alt="Organization logo" className="h-12 grayscale" />
-            <img src="https://images.pexels.com/photos/3184291/pexels-photo-3184291.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1" alt="Organization logo" className="h-12 grayscale" />
-            <img src="https://images.pexels.com/photos/3184296/pexels-photo-3184296.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1" alt="Organization logo" className="h-12 grayscale" />
+          <div className="flex flex-wrap justify-center items-center gap-8">
+            {/* Using consistent spacing (30px) between logos */}
+            <div className="grid grid-cols-5 gap-8">
+              <img src="https://images.pexels.com/photos/3184338/pexels-photo-3184338.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1" alt="Organization logo" className="h-12 grayscale" />
+              <img src="https://images.pexels.com/photos/3184339/pexels-photo-3184339.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1" alt="Organization logo" className="h-12 grayscale" />
+              <img src="https://images.pexels.com/photos/3184360/pexels-photo-3184360.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1" alt="Organization logo" className="h-12 grayscale" />
+              <img src="https://images.pexels.com/photos/3184291/pexels-photo-3184291.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1" alt="Organization logo" className="h-12 grayscale" />
+              <img src="https://images.pexels.com/photos/3184296/pexels-photo-3184296.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1" alt="Organization logo" className="h-12 grayscale" />
+            </div>
           </div>
         </div>
       </div>

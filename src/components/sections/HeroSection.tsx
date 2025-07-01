@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { ArrowRight, Play, CheckCircle, ExternalLink } from 'lucide-react';
 import { Button } from '../common/Button';
 
@@ -15,8 +15,8 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onLogin, onSignup }) =
       <div className="absolute top-20 right-20 w-72 h-72 bg-primary-100 rounded-full blur-3xl opacity-30"></div>
       <div className="absolute bottom-20 left-20 w-96 h-96 bg-blue-100 rounded-full blur-3xl opacity-20"></div>
 
-      <div className="relative w-full px-4 sm:px-6 lg:px-8 max-w-[1920px] mx-auto">
-        <div className="grid lg:grid-cols-2 gap-12 lg:gap-20 items-center">
+      <div className="relative w-full max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
           {/* Left Column - Content */}
           <div className="animate-slide-up">
             <div className="inline-flex items-center px-4 py-2 bg-primary-100 text-primary-700 rounded-full text-sm font-medium mb-6">
@@ -24,7 +24,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onLogin, onSignup }) =
               Now in Beta - Join the Future of Civic Engagement
             </div>
 
-            {/* LegisTrack Logo - Left-justified and smaller */}
+            {/* LegisTrack Logo - Left-justified */}
             <div className="flex justify-start mb-6">
               <img 
                 src="/legisTRACK copy copy.png" 
@@ -33,21 +33,13 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onLogin, onSignup }) =
               />
             </div>
 
-            <div className="flex flex-col lg:flex-row items-start lg:items-center gap-8">
-              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-gray-900 leading-tight mb-6 lg:mb-0">
-                Making Democracy{' '}
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary-500 to-blue-600">
-                  Accessible
-                </span>{' '}
-                Through AI
-              </h1>
-              
-              <img 
-                src="/Opera Snapshot_2025-07-01_093548_legistrack.xyz.png" 
-                alt="Bill Analysis Screenshot" 
-                className="rounded-lg shadow-2xl border border-gray-200 max-w-full lg:max-w-md"
-              />
-            </div>
+            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-gray-900 leading-tight mb-6">
+              Making Democracy{' '}
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary-500 to-blue-600">
+                Accessible
+              </span>{' '}
+              Through AI
+            </h1>
 
             <p className="text-xl text-gray-600 leading-relaxed mb-8 max-w-2xl">
               Transform complex legislation into clear, personalized insights. Track bills that matter to you, 
@@ -85,7 +77,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onLogin, onSignup }) =
                 <img 
                   src="/black_circle_360x360.png" 
                   alt="Powered by Bolt" 
-                  className="h-36 w-auto hover:opacity-80 transition-opacity"
+                  className="h-24 w-auto hover:opacity-80 transition-opacity"
                 />
               </a>
             </div>
@@ -93,47 +85,8 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onLogin, onSignup }) =
             <p className="text-sm text-gray-500">
               Join thousands of citizens staying informed about legislation that affects them.
             </p>
-            
-            {/* Has this happened to you? Section with YouTube Video Alternative */}
-            <div className="mt-12 bg-gray-50 rounded-xl p-6 border border-gray-200">
-              <h2 className="text-2xl font-bold text-gray-900 mb-4">Has this happened to you?</h2>
-              
-              {/* Video Thumbnail with Play Button */}
-              <div className="relative aspect-video rounded-lg overflow-hidden shadow-lg bg-gray-800">
-                {/* Thumbnail Image */}
-                <img 
-                  src="https://img.youtube.com/vi/jqULu0-7kJU/maxresdefault.jpg" 
-                  alt="Marjorie Taylor Greene Not Reading Bill" 
-                  className="w-full h-full object-cover opacity-80"
-                />
-                
-                {/* Play Button Overlay */}
-                <a 
-                  href="https://www.youtube.com/watch?v=jqULu0-7kJU" 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="absolute inset-0 flex items-center justify-center group"
-                >
-                  <div className="bg-red-600 rounded-full p-4 shadow-lg group-hover:bg-red-700 transition-colors">
-                    <Play className="w-8 h-8 text-white" fill="white" />
-                  </div>
-                  
-                  <div className="absolute bottom-4 left-4 right-4 bg-black bg-opacity-70 text-white p-3 rounded">
-                    <h3 className="font-medium text-sm">Marjorie Taylor Greene Admits She Did Not Read Budget Bill Before Voting Yes</h3>
-                    <div className="flex items-center mt-1 text-xs text-gray-300">
-                      <ExternalLink className="w-3 h-3 mr-1" />
-                      <span>Watch on YouTube</span>
-                    </div>
-                  </div>
-                </a>
-              </div>
-              
-              <p className="mt-4 text-gray-600">
-                Don't let this happen to you. With LegisTrack AI, you'll always know what's in the bills that affect your life.
-              </p>
-            </div>
           </div>
-
+          
           {/* Right Column - Demo Preview */}
           <div className="relative animate-slide-up" style={{ animationDelay: '0.2s' }}>
             <div className="relative bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden">
@@ -156,7 +109,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onLogin, onSignup }) =
                   <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
                 </div>
 
-                {/* Mock Bill Card */}
+                {/* Bill Card */}
                 <div className="bg-gradient-to-r from-primary-50 to-blue-50 rounded-lg p-4 border border-primary-100">
                   <div className="flex items-start justify-between mb-3">
                     <div>
@@ -181,7 +134,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onLogin, onSignup }) =
                   </div>
                 </div>
 
-                {/* Mock AI Chat */}
+                {/* AI Chat */}
                 <div className="bg-gray-50 rounded-lg p-4">
                   <div className="flex items-center space-x-2 mb-2">
                     <div className="w-6 h-6 bg-primary-500 rounded-full flex items-center justify-center">
@@ -212,6 +165,47 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onLogin, onSignup }) =
               AI Powered
             </div>
           </div>
+        </div>
+      </div>
+      
+      {/* Has this happened to you? Section with YouTube Video */}
+      <div className="mt-24 w-full max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8">
+        <h2 className="text-2xl font-bold text-gray-900 mb-6 text-center">Has this happened to you?</h2>
+        
+        {/* Video Container with 16:9 Aspect Ratio */}
+        <div className="w-full max-w-4xl mx-auto">
+          <div className="relative aspect-video rounded-lg overflow-hidden shadow-2xl">
+            {/* Video Thumbnail */}
+            <img 
+              src="/Opera Snapshot_2025-07-01_094709_zp1v56uxy8rdx5ypatb0ockcb9tr6a-oci3--5173--6e337437.local-credentialless.webcontainer-api.io.png" 
+              alt="Marjorie Taylor Greene Not Reading Bill" 
+              className="w-full h-full object-cover"
+            />
+            
+            {/* Play Button Overlay */}
+            <a 
+              href="https://www.youtube.com/watch?v=jqULu0-7kJU" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="absolute inset-0 flex items-center justify-center group"
+            >
+              <div className="bg-red-600 rounded-full p-6 shadow-lg group-hover:bg-red-700 transition-colors">
+                <Play className="w-10 h-10 text-white" fill="white" />
+              </div>
+              
+              <div className="absolute bottom-6 left-6 right-6 bg-black bg-opacity-80 text-white p-4 rounded">
+                <h3 className="font-medium text-lg">Marjorie Taylor Greene Admits She Did Not Read Budget Bill Before Voting Yes</h3>
+                <div className="flex items-center mt-2 text-sm text-gray-300">
+                  <ExternalLink className="w-4 h-4 mr-2" />
+                  <span>Watch on YouTube</span>
+                </div>
+              </div>
+            </a>
+          </div>
+          
+          <p className="mt-6 text-gray-600 text-center max-w-2xl mx-auto">
+            Don't let this happen to you. With LegisTrack AI, you'll always know what's in the bills that affect your life.
+          </p>
         </div>
       </div>
     </section>

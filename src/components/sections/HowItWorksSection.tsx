@@ -1,5 +1,5 @@
 import React from 'react';
-import { UserPlus, Settings, Bell, MessageCircle, Video } from 'lucide-react';
+import { UserPlus, Settings, Video, MessageCircle } from 'lucide-react';
 import { Button } from '../common/Button';
 
 interface StepProps {
@@ -63,7 +63,7 @@ export const HowItWorksSection: React.FC = () => {
 
   return (
     <section id="how-it-works" className="w-full py-20 lg:py-32 bg-gradient-to-br from-gray-50 to-primary-50">
-      <div className="w-full px-4 sm:px-6 lg:px-8 max-w-[1920px] mx-auto">
+      <div className="w-full max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8">
         {/* Section Header */}
         <div className="text-center mb-16">
           <div className="inline-flex items-center px-4 py-2 bg-white text-primary-700 rounded-full text-sm font-medium mb-6 shadow-sm">
@@ -162,7 +162,7 @@ export const HowItWorksSection: React.FC = () => {
               </div>
 
               <div className="bg-gray-50 rounded-xl p-6">
-                <div className="aspect-video bg-gray-800 rounded-lg overflow-hidden relative">
+                <div className="aspect-video bg-gray-800 rounded-lg overflow-hidden relative shadow-lg">
                   <div className="absolute inset-0 flex items-center justify-center">
                     <div className="bg-primary-500 rounded-full p-4 cursor-pointer hover:bg-primary-600 transition-colors">
                       <Video className="w-8 h-8 text-white" />

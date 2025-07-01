@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../../hooks/useAuth';
 import { supabase } from '../../../lib/supabase';
-import { TrendingUp, Users, MapPin, AlertCircle, Edit2, Loader2, Globe, CheckCircle, Clock, BookOpen, FileText, Calendar, RefreshCw, BarChart3, MessageSquare, Share2, ExternalLink, Volume2 } from 'lucide-react';
+import { TrendingUp, Users, MapPin, AlertCircle, Edit2, Loader2, Globe, CheckCircle, Clock, BookOpen, FileText, Calendar, RefreshCw, BarChart3, MessageSquare, Share2, ExternalLink, Volume2, Tag } from 'lucide-react';
 import { Button } from '../../common/Button';
 import { openaiService } from '../../../services/openaiService';
 import { billSummaryService } from '../../../services/billSummaryService';
@@ -640,48 +640,51 @@ export const BillOverview: React.FC<BillOverviewProps> = ({
       </div>
 
       {/* Subjects and Policy Area */}
-      {(bill.subjects && bill.subjects.length > 0) || bill.policy_area ? (
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900 mb-4">Subjects & Policy Area</h2>
-          <div className="bg-white rounded-lg border border-gray-200 p-4">
-            {loadingSubjects ? (
-              <div className="flex items-center justify-center py-4">
-                <div className="w-6 h-6 border-2 border-primary-500 border-t-transparent rounded-full animate-spin"></div>
-                <span className="ml-2 text-gray-600">Loading subjects...</span>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {/* Policy Area */}
-                {bill.policy_area && (
-                  <div>
-                    <h3 className="font-medium text-gray-900 mb-2">Policy Area</h3>
-                    <span className="px-3 py-1 bg-blue-100 text-blue-700 text-sm rounded-full">
-                      {bill.policy_area}
-                    </span>
+      <div>
+        <h2 className="text-xl font-semibold text-gray-900 mb-4">Subjects & Policy Area</h2>
+        <div className="bg-white rounded-lg border border-gray-200 p-4">
+          {loadingSubjects ? (
+            <div className="flex items-center justify-center py-4">
+              <div className="w-6 h-6 border-2 border-primary-500 border-t-transparent rounded-full animate-spin"></div>
+              <span className="ml-2 text-gray-600">Loading subjects...</span>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {/* Policy Area */}
+              {bill.policy_area && (
+                <div>
+                  <h3 className="font-medium text-gray-900 mb-2">Policy Area</h3>
+                  <span className="px-3 py-1 bg-blue-100 text-blue-700 text-sm rounded-full">
+                    {bill.policy_area}
+                  </span>
+                </div>
+              )}
+              
+              {/* Legislative Subjects */}
+              {bill.subjects && bill.subjects.length > 0 && (
+                <div>
+                  <h3 className="font-medium text-gray-900 mb-2">Legislative Subjects</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {bill.subjects.map((subject, index) => (
+                      <span
+                        key={index}
+                        className="px-3 py-1 bg-gray-100 text-gray-700 text-sm rounded-full"
+                      >
+                        {subject}
+                      </span>
+                    ))}
                   </div>
-                )}
-                
-                {/* Legislative Subjects */}
-                {bill.subjects && bill.subjects.length > 0 && (
-                  <div>
-                    <h3 className="font-medium text-gray-900 mb-2">Legislative Subjects</h3>
-                    <div className="flex flex-wrap gap-2">
-                      {bill.subjects.map((subject, index) => (
-                        <span
-                          key={index}
-                          className="px-3 py-1 bg-gray-100 text-gray-700 text-sm rounded-full"
-                        >
-                          {subject}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
+                </div>
+              )}
+              
+              {/* No subjects message */}
+              {!bill.policy_area && (!bill.subjects || bill.subjects.length === 0) && (
+                <p className="text-gray-500 italic">No subjects or policy area information available for this bill.</p>
+              )}
+            </div>
+          )}
         </div>
-      ) : null}
+      </div>
 
       {/* Committees */}
       {bill.committees && bill.committees.length > 0 && (

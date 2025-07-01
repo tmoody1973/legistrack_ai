@@ -223,59 +223,47 @@ export const BillDetail: React.FC<BillDetailProps> = ({ bill, onBack }) => {
         )}
       </div>
 
-      {/* Subjects */}
-      {(currentBill.subjects && currentBill.subjects.length > 0) || currentBill.policy_area ? (
-        <div className="bg-white rounded-lg border border-gray-200 p-6">
-          <div className="flex items-center space-x-2 mb-4">
-            <Tag className="w-5 h-5 text-gray-400" />
-            <h2 className="text-xl font-semibold text-gray-900">Subjects</h2>
-          </div>
-          
-          <div className="space-y-4">
-            {/* Policy Area */}
-            {currentBill.policy_area && (
-              <div>
-                <h3 className="font-medium text-gray-900 mb-2">Policy Area</h3>
-                <span className="px-3 py-1 bg-blue-100 text-blue-700 text-sm rounded-full">
-                  {currentBill.policy_area}
-                </span>
-              </div>
-            )}
-            
-            {/* Legislative Subjects */}
-            {currentBill.subjects && currentBill.subjects.length > 0 && (
-              <div>
-                <h3 className="font-medium text-gray-900 mb-2">Legislative Subjects</h3>
-                <div className="flex flex-wrap gap-2">
-                  {currentBill.subjects.map((subject, index) => (
-                    <span
-                      key={index}
-                      className="px-3 py-1 bg-gray-100 text-gray-700 text-sm rounded-full"
-                    >
-                      {subject}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
+      {/* Subjects and Policy Area */}
+      <div className="bg-white rounded-lg border border-gray-200 p-6">
+        <div className="flex items-center space-x-2 mb-4">
+          <Tag className="w-5 h-5 text-gray-400" />
+          <h2 className="text-xl font-semibold text-gray-900">Subjects & Policy Area</h2>
         </div>
-      ) : null}
-
-      {/* Voting Data */}
-      {currentBill.voting_data && currentBill.voting_data.vote_count > 0 && (
-        <div className="bg-white rounded-lg border border-gray-200 p-6">
-          <h2 className="text-xl font-semibold text-gray-900 mb-4">Voting History</h2>
-          <p className="text-gray-600">
-            This bill has {currentBill.voting_data.vote_count} recorded votes.
-          </p>
-          {currentBill.voting_data.last_vote_date && (
-            <p className="text-sm text-gray-500 mt-1">
-              Last vote: {formatDate(currentBill.voting_data.last_vote_date)}
-            </p>
+        
+        <div className="space-y-4">
+          {/* Policy Area */}
+          {currentBill.policy_area && (
+            <div>
+              <h3 className="font-medium text-gray-900 mb-2">Policy Area</h3>
+              <span className="px-3 py-1 bg-blue-100 text-blue-700 text-sm rounded-full">
+                {currentBill.policy_area}
+              </span>
+            </div>
+          )}
+          
+          {/* Legislative Subjects */}
+          {currentBill.subjects && currentBill.subjects.length > 0 && (
+            <div>
+              <h3 className="font-medium text-gray-900 mb-2">Legislative Subjects</h3>
+              <div className="flex flex-wrap gap-2">
+                {currentBill.subjects.map((subject, index) => (
+                  <span
+                    key={index}
+                    className="px-3 py-1 bg-gray-100 text-gray-700 text-sm rounded-full"
+                  >
+                    {subject}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+          
+          {/* No subjects message */}
+          {(!currentBill.policy_area && (!currentBill.subjects || currentBill.subjects.length === 0)) && (
+            <p className="text-gray-500 italic">No subjects or policy area information available for this bill.</p>
           )}
         </div>
-      )}
+      </div>
     </div>
   );
 };

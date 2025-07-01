@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ApiTestPanel } from '../components/debug/ApiTestPanel';
 import { EdgeFunctionDebug } from '../components/debug/EdgeFunctionDebug';
 import { Button } from '../components/common/Button';
@@ -36,10 +36,7 @@ export const DebugPage: React.FC = () => {
       setImportResult(null);
       
       const result = await SubjectImportService.importAllSubjects();
-      setImportResult({
-        success: true,
-        message: 'Successfully imported subjects'
-      });
+      setImportResult(result);
     } catch (error) {
       setImportResult({
         success: false,
@@ -225,6 +222,112 @@ export const DebugPage: React.FC = () => {
         </div>
         
         <div className="space-y-8">
+          {/* Subject Import Panel */}
+          <div className="bg-white rounded-lg border border-gray-200 p-6">
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h2 className="text-xl font-semibold text-gray-900 flex items-center">
+                  <Tag className="w-5 h-5 mr-2 text-primary-500" />
+                  Bill Subjects Import
+                </h2>
+                <p className="text-gray-600">Import policy areas and legislative subjects from Congress.gov API</p>
+              </div>
+              
+              <div className="flex space-x-3">
+                <Button 
+                  onClick={handleImportSubjects} 
+                  disabled={importingSubjects}
+                  variant="primary"
+                >
+                  {importingSubjects ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Importing...
+                    </>
+                  ) : (
+                    'Import All Subjects'
+                  )}
+                </Button>
+                
+                <Button 
+                  onClick={handleUpdatePolicyAreas} 
+                  disabled={updatingPolicyAreas}
+                  variant="outline"
+                >
+                  {updatingPolicyAreas ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Updating...
+                    </>
+                  ) : (
+                    'Update Policy Areas'
+                  )}
+                </Button>
+              </div>
+            </div>
+            
+            {/* Import Results */}
+            {importResult && (
+              <div className={`p-4 rounded-lg border mb-4 ${
+                importResult.success 
+                  ? 'bg-success-50 border-success-200 text-success-700' 
+                  : 'bg-error-50 border-error-200 text-error-700'
+              }`}>
+                <div className="flex items-center space-x-2">
+                  {importResult.success ? (
+                    <CheckCircle className="w-5 h-5 flex-shrink-0" />
+                  ) : (
+                    <AlertCircle className="w-5 h-5 flex-shrink-0" />
+                  )}
+                  <div>
+                    <p className="font-medium">{importResult.message}</p>
+                    {importResult.success && importResult.count && (
+                      <p className="text-sm">Imported {importResult.count} subjects</p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+            
+            {/* Update Results */}
+            {updateResult && (
+              <div className={`p-4 rounded-lg border mb-4 ${
+                updateResult.success 
+                  ? 'bg-success-50 border-success-200 text-success-700' 
+                  : 'bg-error-50 border-error-200 text-error-700'
+              }`}>
+                <div className="flex items-center space-x-2">
+                  {updateResult.success ? (
+                    <CheckCircle className="w-5 h-5 flex-shrink-0" />
+                  ) : (
+                    <AlertCircle className="w-5 h-5 flex-shrink-0" />
+                  )}
+                  <div>
+                    <p className="font-medium">{updateResult.message}</p>
+                    {updateResult.success && (
+                      <p className="text-sm">Updated {updateResult.count} bills</p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+            
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mt-4">
+              <h3 className="font-medium text-blue-800 mb-2 flex items-center">
+                <Database className="w-4 h-4 mr-2" />
+                About Bill Subjects
+              </h3>
+              <ul className="text-sm text-blue-700 space-y-1">
+                <li>• <strong>Policy Areas</strong> are broad categories assigned to bills (e.g., "Health", "Education")</li>
+                <li>• <strong>Legislative Subjects</strong> are more specific topics covered by the bill</li>
+                <li>• Each bill has one Policy Area and multiple Legislative Subjects</li>
+                <li>• Importing subjects allows filtering bills by subject in the UI</li>
+                <li>• The import process fetches subjects from a sample of bills across multiple congresses</li>
+                <li>• The "Update Policy Areas" button adds missing policy areas to existing bills</li>
+              </ul>
+            </div>
+          </div>
+          
           {/* NEW: Podcast Overview Generation Panel */}
           <div className="bg-white rounded-lg border border-gray-200 p-6">
             <div className="flex items-center justify-between mb-6">
@@ -444,112 +547,6 @@ export const DebugPage: React.FC = () => {
                 <li>• <strong>Comprehensive Results</strong>: Provides detailed statistics on what was updated</li>
                 <li>• <strong>Podcast Overviews</strong>: Now generates podcast-style overviews for bills</li>
                 <li>• This process may take several minutes to complete as it makes multiple API calls</li>
-              </ul>
-            </div>
-          </div>
-          
-          {/* Subject Import Panel */}
-          <div className="bg-white rounded-lg border border-gray-200 p-6">
-            <div className="flex items-center justify-between mb-6">
-              <div>
-                <h2 className="text-xl font-semibold text-gray-900 flex items-center">
-                  <Tag className="w-5 h-5 mr-2 text-primary-500" />
-                  Bill Subjects Import
-                </h2>
-                <p className="text-gray-600">Import policy areas and legislative subjects from Congress.gov API</p>
-              </div>
-              
-              <div className="flex space-x-3">
-                <Button 
-                  onClick={handleImportSubjects} 
-                  disabled={importingSubjects}
-                  variant="primary"
-                >
-                  {importingSubjects ? (
-                    <>
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      Importing...
-                    </>
-                  ) : (
-                    'Import All Subjects'
-                  )}
-                </Button>
-                
-                <Button 
-                  onClick={handleUpdatePolicyAreas} 
-                  disabled={updatingPolicyAreas}
-                  variant="outline"
-                >
-                  {updatingPolicyAreas ? (
-                    <>
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      Updating...
-                    </>
-                  ) : (
-                    'Update Policy Areas'
-                  )}
-                </Button>
-              </div>
-            </div>
-            
-            {/* Import Results */}
-            {importResult && (
-              <div className={`p-4 rounded-lg border mb-4 ${
-                importResult.success 
-                  ? 'bg-success-50 border-success-200 text-success-700' 
-                  : 'bg-error-50 border-error-200 text-error-700'
-              }`}>
-                <div className="flex items-center space-x-2">
-                  {importResult.success ? (
-                    <CheckCircle className="w-5 h-5 flex-shrink-0" />
-                  ) : (
-                    <AlertCircle className="w-5 h-5 flex-shrink-0" />
-                  )}
-                  <div>
-                    <p className="font-medium">{importResult.message}</p>
-                    {importResult.success && importResult.count && (
-                      <p className="text-sm">Imported {importResult.count} subjects</p>
-                    )}
-                  </div>
-                </div>
-              </div>
-            )}
-            
-            {/* Update Results */}
-            {updateResult && (
-              <div className={`p-4 rounded-lg border mb-4 ${
-                updateResult.success 
-                  ? 'bg-success-50 border-success-200 text-success-700' 
-                  : 'bg-error-50 border-error-200 text-error-700'
-              }`}>
-                <div className="flex items-center space-x-2">
-                  {updateResult.success ? (
-                    <CheckCircle className="w-5 h-5 flex-shrink-0" />
-                  ) : (
-                    <AlertCircle className="w-5 h-5 flex-shrink-0" />
-                  )}
-                  <div>
-                    <p className="font-medium">{updateResult.message}</p>
-                    {updateResult.success && (
-                      <p className="text-sm">Updated {updateResult.count} bills</p>
-                    )}
-                  </div>
-                </div>
-              </div>
-            )}
-            
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mt-4">
-              <h3 className="font-medium text-blue-800 mb-2 flex items-center">
-                <Database className="w-4 h-4 mr-2" />
-                About Bill Subjects
-              </h3>
-              <ul className="text-sm text-blue-700 space-y-1">
-                <li>• <strong>Policy Areas</strong> are broad categories assigned to bills (e.g., "Health", "Education")</li>
-                <li>• <strong>Legislative Subjects</strong> are more specific topics covered by the bill</li>
-                <li>• Each bill has one Policy Area and multiple Legislative Subjects</li>
-                <li>• Importing subjects allows filtering bills by subject in the UI</li>
-                <li>• The import process fetches subjects from a sample of bills across multiple congresses</li>
-                <li>• The "Update Policy Areas" button adds missing policy areas to existing bills</li>
               </ul>
             </div>
           </div>

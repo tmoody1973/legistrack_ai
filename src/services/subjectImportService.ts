@@ -12,7 +12,7 @@ export class SubjectImportService {
   private static readonly CONGRESS_API_BASE = 'https://api.congress.gov/v3';
   private static readonly API_KEY = import.meta.env.VITE_CONGRESS_API_KEY;
 
-  static async importAllSubjects(): Promise<void> {
+  static async importAllSubjects(): Promise<{ success: boolean; count: number; message: string }> {
     if (!this.API_KEY) {
       throw new Error('Congress API key not configured');
     }
@@ -21,19 +21,29 @@ export class SubjectImportService {
       console.log('🔄 Starting subject import...');
       
       // Import legislative subjects
-      await this.importLegislativeSubjects();
+      const legislativeSubjects = await this.importLegislativeSubjects();
       
       // Import policy areas
-      await this.importPolicyAreas();
+      const policyAreas = await this.importPolicyAreas();
       
       console.log('✅ Subject import completed successfully');
+      
+      return {
+        success: true,
+        count: legislativeSubjects.length + policyAreas.length,
+        message: `Successfully imported ${legislativeSubjects.length} legislative subjects and ${policyAreas.length} policy areas`
+      };
     } catch (error) {
       console.error('❌ Error importing subjects:', error);
-      throw error;
+      return {
+        success: false,
+        count: 0,
+        message: `Error importing subjects: ${error.message}`
+      };
     }
   }
 
-  private static async importLegislativeSubjects(): Promise<void> {
+  private static async importLegislativeSubjects(): Promise<BillSubject[]> {
     try {
       const response = await fetch(
         `${this.CONGRESS_API_BASE}/bill/subjects?format=json&api_key=${this.API_KEY}&limit=250`
@@ -70,13 +80,14 @@ export class SubjectImportService {
       }
 
       console.log(`✅ Imported ${subjectData.length} legislative subjects`);
+      return subjectData;
     } catch (error) {
       console.error('Error importing legislative subjects:', error);
       throw error;
     }
   }
 
-  private static async importPolicyAreas(): Promise<void> {
+  private static async importPolicyAreas(): Promise<BillSubject[]> {
     try {
       const response = await fetch(
         `${this.CONGRESS_API_BASE}/bill/policy-areas?format=json&api_key=${this.API_KEY}&limit=250`
@@ -113,6 +124,7 @@ export class SubjectImportService {
       }
 
       console.log(`✅ Imported ${policyData.length} policy areas`);
+      return policyData;
     } catch (error) {
       console.error('Error importing policy areas:', error);
       throw error;

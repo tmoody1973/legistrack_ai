@@ -90,39 +90,33 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onLogin, onSignup }) =
             <div className="mt-12 bg-gray-50 rounded-xl p-6 border border-gray-200">
               <h2 className="text-2xl font-bold text-gray-900 mb-4">Has this happened to you?</h2>
               
-              {/* Video Thumbnail with Play Button */}
-              <div className="relative aspect-video rounded-lg overflow-hidden shadow-lg bg-gray-800">
-                {/* Thumbnail Image */}
-                <img 
-                  src="/Opera Snapshot_2025-07-01_094144_legistrack.xyz.png" 
-                  alt="Marjorie Taylor Greene Not Reading Bill" 
-                  className="w-full h-full object-cover opacity-80"
-                />
-                
-                {/* Play Button Overlay */}
+              {/* YouTube Video Embed with Responsive Container */}
+              <div className="relative aspect-video w-full overflow-hidden rounded-lg shadow-lg mb-4">
+                <iframe 
+                  className="absolute top-0 left-0 w-full h-full"
+                  src="https://www.youtube.com/embed/jqULu0-7kJU"
+                  title="Marjorie Taylor Greene Admits She Did Not Read Budget Bill Before Voting Yes"
+                  frameBorder="0"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                  loading="lazy"
+                ></iframe>
+              </div>
+              
+              <div className="flex items-center justify-between">
+                <p className="text-gray-600">
+                  Don't let this happen to you. With LegisTrack AI, you'll always know what's in the bills that affect your life.
+                </p>
                 <a 
                   href="https://www.youtube.com/watch?v=jqULu0-7kJU" 
                   target="_blank" 
                   rel="noopener noreferrer"
-                  className="absolute inset-0 flex items-center justify-center group"
+                  className="text-primary-600 hover:text-primary-700 flex items-center text-sm font-medium"
                 >
-                  <div className="bg-red-600 rounded-full p-4 shadow-lg group-hover:bg-red-700 transition-colors">
-                    <Play className="w-8 h-8 text-white" fill="white" />
-                  </div>
-                  
-                  <div className="absolute bottom-4 left-4 right-4 bg-black bg-opacity-70 text-white p-3 rounded">
-                    <h3 className="font-medium text-sm">Marjorie Taylor Greene Admits She Did Not Read Budget Bill Before Voting Yes</h3>
-                    <div className="flex items-center mt-1 text-xs text-gray-300">
-                      <ExternalLink className="w-3 h-3 mr-1" />
-                      <span>Watch on YouTube</span>
-                    </div>
-                  </div>
+                  Watch on YouTube
+                  <ExternalLink className="w-4 h-4 ml-1" />
                 </a>
               </div>
-              
-              <p className="mt-4 text-gray-600">
-                Don't let this happen to you. With LegisTrack AI, you'll always know what's in the bills that affect your life.
-              </p>
             </div>
           </div>
           

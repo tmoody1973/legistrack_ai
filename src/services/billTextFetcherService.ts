@@ -28,11 +28,12 @@ class BillTextFetcherService {
           `/bill/${congress}/${billType.toLowerCase()}/${billNumber}/text`
         );
         
+        // Check if textVersions exists and is not empty
         if (!textVersionsResponse?.textVersions) {
           console.warn(`⚠️ No text versions found for bill ${congress}-${billType}-${billNumber}`);
           return {
             success: false,
-            message: `No text versions available for bill ${congress}-${billType}-${billNumber}`
+            message: `No text versions found for this bill`
           };
         }
         
@@ -45,7 +46,7 @@ class BillTextFetcherService {
           console.warn(`⚠️ Empty text versions array for bill ${congress}-${billType}-${billNumber}`);
           return {
             success: false,
-            message: `No text versions available for bill ${congress}-${billType}-${billNumber}`
+            message: `No text versions available for this bill`
           };
         }
         
@@ -55,18 +56,27 @@ class BillTextFetcherService {
         const latestVersion = textVersions[0];
         console.log(`📄 Using latest version: ${latestVersion.type} from ${latestVersion.date}`);
         
+        // Check if formats exist
+        if (!latestVersion.formats || !Array.isArray(latestVersion.formats) || latestVersion.formats.length === 0) {
+          console.warn(`⚠️ No formats available for bill ${congress}-${billType}-${billNumber}`);
+          return {
+            success: false,
+            message: `No text formats available for this bill`
+          };
+        }
+        
         // Step 3: Find the XML formatted version
-        const xmlFormat = latestVersion.formats?.find((format: any) => 
+        const xmlFormat = latestVersion.formats.find((format: any) => 
           format.type === 'Formatted XML' || format.type === 'XML'
         );
         
         // Fallback to other formats if XML not available
-        const textFormat = xmlFormat || latestVersion.formats?.find((format: any) => 
+        const textFormat = xmlFormat || latestVersion.formats.find((format: any) => 
           format.type === 'Formatted Text' || format.type === 'Text'
         );
         
         // Last resort: PDF
-        const pdfFormat = textFormat || latestVersion.formats?.find((format: any) => 
+        const pdfFormat = textFormat || latestVersion.formats.find((format: any) => 
           format.type === 'PDF'
         );
         
@@ -77,7 +87,7 @@ class BillTextFetcherService {
           console.warn(`⚠️ No suitable text format found for bill ${congress}-${billType}-${billNumber}`);
           return {
             success: false,
-            message: `No suitable text format available for bill ${congress}-${billType}-${billNumber}`
+            message: `No suitable text format available for this bill`
           };
         }
         
@@ -113,7 +123,7 @@ class BillTextFetcherService {
           console.warn(`⚠️ Invalid or empty bill text content for ${congress}-${billType}-${billNumber}`);
           return {
             success: false,
-            message: `Invalid or empty text content for bill ${congress}-${billType}-${billNumber}`
+            message: `Invalid or empty text content for this bill`
           };
         }
         

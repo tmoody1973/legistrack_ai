@@ -42,27 +42,22 @@ export const BillFullText: React.FC<BillFullTextProps> = ({ bill }) => {
         setAvailableFormats(formats);
         
         // Get Formatted XML URL first
-        const xmlUrl = await billFullTextService.getFullTextUrl(bill.id, 'Formatted XML');
-        setFormattedXmlUrl(xmlUrl);
-        
-        // If Formatted XML not available, get PDF URL as fallback
-        if (!xmlUrl) {
-          const pdfUrl = await billFullTextService.getFullTextUrl(bill.id, 'PDF');
-          setFullTextUrl(pdfUrl);
-        } else {
-          setFullTextUrl(xmlUrl);
+        const xmlUrlResult = await billFullTextService.getFullTextUrl(bill.id, 'Formatted XML');
+        if (xmlUrlResult.success && xmlUrlResult.url) {
+          setFormattedXmlUrl(xmlUrlResult.url);
+          setFullTextUrl(xmlUrlResult.url);
           
           // Try to fetch the formatted XML content
           setLoadingContent(true);
           try {
             // If we don't have content in the database, try to fetch it
             if (!bill.full_text_content) {
-              const content = await billFullTextService.getFormattedTextContent(bill.id);
-              if (content) {
-                setTextContent(content);
+              const contentResult = await billFullTextService.getFormattedTextContent(bill.id);
+              if (contentResult.success && contentResult.content) {
+                setTextContent(contentResult.content);
                 
                 // Store the content in the database for future use
-                await billFullTextService.updateBillWithTextContent(bill.id, content);
+                await billFullTextService.updateBillWithTextContent(bill.id, contentResult.content);
               }
             }
           } catch (contentError) {
@@ -70,9 +65,15 @@ export const BillFullText: React.FC<BillFullTextProps> = ({ bill }) => {
           } finally {
             setLoadingContent(false);
           }
+        } else {
+          // If Formatted XML not available, get PDF URL as fallback
+          const pdfUrlResult = await billFullTextService.getFullTextUrl(bill.id, 'PDF');
+          if (pdfUrlResult.success && pdfUrlResult.url) {
+            setFullTextUrl(pdfUrlResult.url);
+          }
         }
         
-        if (!xmlUrl && !fullTextUrl && !bill.full_text_content) {
+        if (!xmlUrlResult.success && !fullTextUrl && !bill.full_text_content) {
           setError('Full text not available for this bill. Please view on Congress.gov.');
         }
       } catch (err) {

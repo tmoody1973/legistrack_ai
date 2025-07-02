@@ -141,13 +141,9 @@ class BillFullTextService {
    * Get the full text URL for a bill, prioritizing Formatted XML over PDF
    * @param billId Bill ID
    * @param preferredFormat Preferred format (Formatted XML, PDF, etc.)
-   * @returns Object with success status, URL, and message
+   * @returns URL to the full text or null if not found
    */
-  async getFullTextUrl(billId: string, preferredFormat: string = 'Formatted XML'): Promise<{
-    success: boolean;
-    url?: string;
-    message: string;
-  }> {
+  async getFullTextUrl(billId: string, preferredFormat: string = 'Formatted XML'): Promise<string | null> {
     try {
       console.log(`🔍 Fetching full text URL for bill: ${billId}`);
       
@@ -155,57 +151,32 @@ class BillFullTextService {
       const latestVersion = await this.getLatestTextVersion(billId);
       
       if (!latestVersion || !latestVersion.formats || latestVersion.formats.length === 0) {
-        return {
-          success: false,
-          message: 'No text versions found for this bill'
-        };
+        return null;
       }
       
       // Try to find the preferred format
       const preferredFormatUrl = latestVersion.formats.find(
-        (format: any) => format.type.toUpperCase() === preferredFormat.toUpperCase()
+        format => format.type.toUpperCase() === preferredFormat.toUpperCase()
       )?.url;
       
       if (preferredFormatUrl) {
-        return {
-          success: true,
-          url: preferredFormatUrl,
-          message: `Found ${preferredFormat} URL`
-        };
+        return preferredFormatUrl;
       }
       
       // If Formatted XML not found, try to find PDF
       const pdfUrl = latestVersion.formats.find(
-        (format: any) => format.type.toUpperCase() === 'PDF'
+        format => format.type.toUpperCase() === 'PDF'
       )?.url;
       
       if (pdfUrl) {
-        return {
-          success: true,
-          url: pdfUrl,
-          message: 'Found PDF URL (preferred format not available)'
-        };
+        return pdfUrl;
       }
       
       // Fall back to any available format
-      if (latestVersion.formats[0]?.url) {
-        return {
-          success: true,
-          url: latestVersion.formats[0].url,
-          message: `Found ${latestVersion.formats[0].type} URL (preferred formats not available)`
-        };
-      }
-      
-      return {
-        success: false,
-        message: 'No text formats available for this bill'
-      };
+      return latestVersion.formats[0].url;
     } catch (error) {
       console.error(`❌ Error getting full text URL for bill ${billId}:`, error);
-      return {
-        success: false,
-        message: `Error getting full text URL: ${error.message}`
-      };
+      return null;
     }
   }
 
@@ -307,15 +278,15 @@ class BillFullTextService {
         await Promise.all(batch.map(async (billId) => {
           try {
             // Prioritize Formatted XML over PDF
-            const textUrlResult = await this.getFullTextUrl(billId, 'Formatted XML');
-            if (textUrlResult.success && textUrlResult.url) {
-              await this.updateBillWithTextUrl(billId, textUrlResult.url);
+            const textUrl = await this.getFullTextUrl(billId, 'Formatted XML');
+            if (textUrl) {
+              await this.updateBillWithTextUrl(billId, textUrl);
               
               // Try to fetch and store the full text content
               try {
-                const contentResult = await this.getFormattedTextContent(billId);
-                if (contentResult.success && contentResult.content) {
-                  await this.updateBillWithTextContent(billId, contentResult.content);
+                const textContent = await this.getFormattedTextContent(billId);
+                if (textContent) {
+                  await this.updateBillWithTextContent(billId, textContent);
                   updatedCount++;
                 }
               } catch (textError) {
@@ -422,30 +393,23 @@ class BillFullTextService {
   /**
    * Fetch and parse the formatted XML content for a bill
    * @param billId Bill ID
-   * @returns Object with success status, content, and message
+   * @returns The formatted text content or null if not found
    */
-  async getFormattedTextContent(billId: string): Promise<{
-    success: boolean;
-    content?: string;
-    message: string;
-  }> {
+  async getFormattedTextContent(billId: string): Promise<string | null> {
     try {
       console.log(`🔍 Fetching formatted text content for bill: ${billId}`);
       
       // Get the Formatted XML URL
-      const textUrlResult = await this.getFullTextUrl(billId, 'Formatted XML');
+      const xmlUrl = await this.getFullTextUrl(billId, 'Formatted XML');
       
-      if (!textUrlResult.success || !textUrlResult.url) {
+      if (!xmlUrl) {
         console.log(`⚠️ No XML URL found for bill: ${billId}`);
-        return {
-          success: false,
-          message: textUrlResult.message
-        };
+        return null;
       }
 
       // Check if we should skip this request due to CORS restrictions
-      if (this.shouldSkipCorsRequest(textUrlResult.url)) {
-        console.log(`⚠️ Skipping CORS-restricted request to: ${textUrlResult.url}`);
+      if (this.shouldSkipCorsRequest(xmlUrl)) {
+        console.log(`⚠️ Skipping CORS-restricted request to: ${xmlUrl}`);
         
         // Try to get content from database first
         const { data, error } = await supabase
@@ -456,11 +420,7 @@ class BillFullTextService {
         
         if (!error && data && data.full_text_content) {
           console.log(`✅ Using cached full text content from database for bill: ${billId}`);
-          return {
-            success: true,
-            content: data.full_text_content,
-            message: 'Using cached full text content from database'
-          };
+          return data.full_text_content;
         }
         
         // If not in database, try to generate a summary with web search
@@ -478,11 +438,7 @@ class BillFullTextService {
               console.log(`✅ Generated summary with web search for bill ${billId}`);
               // Store the summary in the database
               await this.updateBillWithTextContent(billId, summary);
-              return {
-                success: true,
-                content: summary,
-                message: 'Generated summary with web search due to CORS restrictions'
-              };
+              return summary;
             }
           }
         } catch (searchError) {
@@ -490,13 +446,13 @@ class BillFullTextService {
         }
         
         // If not in database and couldn't generate summary, throw a more helpful error
-        throw new Error(`Cannot fetch bill text directly from browser due to CORS restrictions. The bill text is available at: ${textUrlResult.url}`);
+        throw new Error(`Cannot fetch bill text directly from browser due to CORS restrictions. The bill text is available at: ${xmlUrl}`);
       }
       
-      console.log(`📡 Fetching XML content from: ${textUrlResult.url}`);
+      console.log(`📡 Fetching XML content from: ${xmlUrl}`);
       
       // Fetch the XML content with timeout
-      const response = await this.fetchWithTimeout(textUrlResult.url);
+      const response = await this.fetchWithTimeout(xmlUrl);
       
       if (!response.ok) {
         const errorMessage = `Failed to fetch XML content: ${response.status} ${response.statusText}`;
@@ -509,49 +465,27 @@ class BillFullTextService {
       
       if (!textContent || textContent.trim().length === 0) {
         console.warn(`⚠️ Empty content received for bill: ${billId}`);
-        return {
-          success: false,
-          message: 'Empty content received from text URL'
-        };
+        return null;
       }
       
       console.log(`✅ Successfully fetched XML content for bill: ${billId} (${textContent.length} characters)`);
-      return {
-        success: true,
-        content: textContent,
-        message: 'Successfully fetched text content'
-      };
+      return textContent;
     } catch (error) {
       console.error(`❌ Error getting formatted text content for bill ${billId}:`, error);
       
       // Provide more specific error messages for different types of errors
       if (error.message.includes('timed out')) {
-        return {
-          success: false,
-          message: `Request timed out while fetching bill text. Please try again.`
-        };
+        throw new Error(`Request timed out while fetching bill text. Please try again.`);
       } else if (error.message.includes('CORS restrictions')) {
         // Re-throw CORS-specific errors as-is
-        return {
-          success: false,
-          message: error.message
-        };
+        throw error;
       } else if (error.message === 'Failed to fetch') {
         // This is the main error we're fixing - provide a clear CORS-related message
-        return {
-          success: false,
-          message: `Cannot access bill text due to browser security restrictions (CORS). This is common when accessing government websites directly from the browser. You can view the full text at Congress.gov instead.`
-        };
+        throw new Error(`Cannot access bill text due to browser security restrictions (CORS). This is common when accessing government websites directly from the browser. You can view the full text at Congress.gov instead.`);
       } else if (error.message.includes('Failed to fetch XML content:')) {
-        return {
-          success: false,
-          message: error.message
-        };
+        throw error; // Re-throw HTTP errors as-is
       } else {
-        return {
-          success: false,
-          message: `Unable to fetch bill text: ${error.message}`
-        };
+        throw new Error(`Unable to fetch bill text: ${error.message}`);
       }
     }
   }

@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { FileText, Printer, Download, Search, ExternalLink, AlertTriangle, MessageSquare, Bookmark, Loader2, RefreshCw, Globe } from 'lucide-react';
-import { Button } from '../common/Button';
-import { Input } from '../common/Input';
+import { FileText, Printer, Download, Search, ExternalLink, AlertTriangle, MessageSquare, Bookmark, Loader2 } from 'lucide-react';
+import { Button } from '../../common/Button';
+import { Input } from '../../common/Input';
 import { billFullTextService } from '../../../services/billFullTextService';
-import { billTextFetcherService } from '../../../services/billTextFetcherService';
 import type { Bill } from '../../../types';
 
 interface BillFullTextProps {
@@ -22,7 +21,6 @@ export const BillFullText: React.FC<BillFullTextProps> = ({ bill }) => {
   const [loadingContent, setLoadingContent] = useState(false);
   const [searchResults, setSearchResults] = useState<{index: number, text: string}[]>([]);
   const [currentResultIndex, setCurrentResultIndex] = useState<number>(-1);
-  const [fetchingSpecificBill, setFetchingSpecificBill] = useState(false);
 
   // Fetch full text when component mounts
   useEffect(() => {
@@ -39,55 +37,46 @@ export const BillFullText: React.FC<BillFullTextProps> = ({ bill }) => {
           return;
         }
         
-        // Special case for HR 1 "One Big Beautiful Bill Act"
-        if (bill.id === '119-HR-1' || (bill.congress === 119 && bill.bill_type === 'HR' && bill.number === 1)) {
-          console.log('🔍 Detected HR 1 "One Big Beautiful Bill Act" - using direct fetching');
-          await fetchHR1Text();
-          return;
-        }
-        
         // Get available formats
         const formats = await billFullTextService.getAvailableFormats(bill.id);
         setAvailableFormats(formats);
         
         // Get Formatted XML URL first
-        const xmlUrlResult = await billFullTextService.getFullTextUrl(bill.id, 'Formatted XML');
-        if (xmlUrlResult.success && xmlUrlResult.url) {
-          setFormattedXmlUrl(xmlUrlResult.url);
-          setFullTextUrl(xmlUrlResult.url);
+        const xmlUrl = await billFullTextService.getFullTextUrl(bill.id, 'Formatted XML');
+        setFormattedXmlUrl(xmlUrl);
+        
+        // If Formatted XML not available, get PDF URL as fallback
+        if (!xmlUrl) {
+          const pdfUrl = await billFullTextService.getFullTextUrl(bill.id, 'PDF');
+          setFullTextUrl(pdfUrl);
+        } else {
+          setFullTextUrl(xmlUrl);
           
           // Try to fetch the formatted XML content
           setLoadingContent(true);
           try {
             // If we don't have content in the database, try to fetch it
             if (!bill.full_text_content) {
-              const contentResult = await billFullTextService.getFormattedTextContent(bill.id);
-              if (contentResult.success && contentResult.content) {
-                setTextContent(contentResult.content);
+              const content = await billFullTextService.getFormattedTextContent(bill.id);
+              if (content) {
+                setTextContent(content);
                 
                 // Store the content in the database for future use
-                await billFullTextService.updateBillWithTextContent(bill.id, contentResult.content);
+                await billFullTextService.updateBillWithTextContent(bill.id, content);
               }
             }
-          } catch (textError) {
-            // Log the error but don't fail the entire batch
-            console.warn(`Could not fetch text content for bill ${bill.id}:`, textError.message);
+          } catch (contentError) {
+            console.error('Error fetching XML content:', contentError);
           } finally {
             setLoadingContent(false);
           }
-        } else {
-          // If Formatted XML not available, get PDF URL as fallback
-          const pdfUrlResult = await billFullTextService.getFullTextUrl(bill.id, 'PDF');
-          if (pdfUrlResult.success && pdfUrlResult.url) {
-            setFullTextUrl(pdfUrlResult.url);
-          }
         }
         
-        if (!xmlUrlResult.success && !fullTextUrl && !bill.full_text_content) {
+        if (!xmlUrl && !fullTextUrl && !bill.full_text_content) {
           setError('Full text not available for this bill. Please view on Congress.gov.');
         }
-      } catch (error) {
-        console.error('Error fetching full text:', error);
+      } catch (err) {
+        console.error('Error fetching full text:', err);
         setError('Could not load full text. Please try again or view on Congress.gov.');
       } finally {
         setLoading(false);
@@ -96,33 +85,6 @@ export const BillFullText: React.FC<BillFullTextProps> = ({ bill }) => {
     
     fetchFullText();
   }, [bill.id, bill.full_text_content]);
-
-  const fetchHR1Text = async () => {
-    try {
-      setFetchingSpecificBill(true);
-      setError(null);
-      
-      console.log('🔍 Fetching HR 1 text directly...');
-      
-      // Use the specialized service to fetch HR 1 text
-      const result = await billTextFetcherService.fetchSpecificBillText('119-HR-1');
-      
-      if (result.success && result.content) {
-        setTextContent(result.content);
-        setFullTextUrl('https://www.congress.gov/119/bills/hr1/BILLS-119hr1eas.htm');
-        console.log('✅ Successfully fetched HR 1 text');
-      } else {
-        setError(`Could not fetch HR 1 text: ${result.message}`);
-        console.error('❌ Failed to fetch HR 1 text:', result.message);
-      }
-    } catch (error) {
-      console.error('❌ Error fetching HR 1 text:', error);
-      setError(`Error fetching HR 1 text: ${error.message}`);
-    } finally {
-      setFetchingSpecificBill(false);
-      setLoading(false);
-    }
-  };
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -279,39 +241,6 @@ export const BillFullText: React.FC<BillFullTextProps> = ({ bill }) => {
           </div>
         ) : (
           <div className="space-y-6">
-            {/* Special HR 1 Handling */}
-            {bill.id === '119-HR-1' && !textContent && (
-              <div className="bg-blue-50 rounded-lg p-4 border border-blue-200 mb-4">
-                <div className="flex items-center space-x-3">
-                  <FileText className="w-5 h-5 text-blue-500" />
-                  <div>
-                    <h4 className="font-medium text-blue-800">HR 1 "One Big Beautiful Bill Act"</h4>
-                    <p className="text-blue-700 text-sm">This bill has a special text format. Click below to fetch it directly.</p>
-                  </div>
-                </div>
-                <div className="mt-3 flex justify-end">
-                  <Button 
-                    onClick={fetchHR1Text} 
-                    disabled={fetchingSpecificBill}
-                    variant="primary"
-                    size="sm"
-                  >
-                    {fetchingSpecificBill ? (
-                      <>
-                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                        Fetching HR 1 Text...
-                      </>
-                    ) : (
-                      <>
-                        <FileText className="w-4 h-4 mr-2" />
-                        Fetch HR 1 Text
-                      </>
-                    )}
-                  </Button>
-                </div>
-              </div>
-            )}
-            
             <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
               <h3 className="font-medium text-gray-900 mb-3">Available Text Formats</h3>
               <div className="flex flex-wrap gap-2">
@@ -326,19 +255,6 @@ export const BillFullText: React.FC<BillFullTextProps> = ({ bill }) => {
                     {format.type}
                   </Button>
                 ))}
-                {availableFormats.length === 0 && bill.full_text_url && (
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={() => window.open(bill.full_text_url!, '_blank')}
-                  >
-                    <FileText className="w-4 h-4 mr-2" />
-                    View on Congress.gov
-                  </Button>
-                )}
-                {availableFormats.length === 0 && !bill.full_text_url && (
-                  <span className="text-gray-500 italic">No text formats available</span>
-                )}
               </div>
             </div>
             
@@ -354,7 +270,7 @@ export const BillFullText: React.FC<BillFullTextProps> = ({ bill }) => {
                   <Button 
                     variant="outline" 
                     size="sm"
-                    onClick={() => window.open(formattedXmlUrl || bill.full_text_url || '', '_blank')}
+                    onClick={() => window.open(formattedXmlUrl || '', '_blank')}
                   >
                     <ExternalLink className="w-4 h-4 mr-2" />
                     Open in New Tab

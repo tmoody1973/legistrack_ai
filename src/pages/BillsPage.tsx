@@ -7,7 +7,7 @@ import { trackingService } from '../services/trackingService';
 import { billDataSyncService } from '../services/billDataSyncService';
 import { openaiService } from '../services/openaiService';
 import { useAuth } from '../hooks/useAuth';
-import { Loader2, AlertTriangle, ArrowLeft, Calendar } from 'lucide-react';
+import { Loader2, AlertTriangle, Calendar } from 'lucide-react';
 import type { Bill } from '../types';
 
 export const BillsPage: React.FC = () => {

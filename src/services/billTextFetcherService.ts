@@ -29,7 +29,11 @@ class BillTextFetcherService {
         );
         
         if (!textVersionsResponse?.textVersions) {
-          throw new Error('No text versions found for this bill');
+          console.warn(`⚠️ No text versions found for bill ${congress}-${billType}-${billNumber}`);
+          return {
+            success: false,
+            message: `No text versions available for bill ${congress}-${billType}-${billNumber}`
+          };
         }
         
         // Get text versions as array
@@ -38,7 +42,11 @@ class BillTextFetcherService {
           : [textVersionsResponse.textVersions];
         
         if (textVersions.length === 0) {
-          throw new Error('No text versions found for this bill');
+          console.warn(`⚠️ Empty text versions array for bill ${congress}-${billType}-${billNumber}`);
+          return {
+            success: false,
+            message: `No text versions available for bill ${congress}-${billType}-${billNumber}`
+          };
         }
         
         console.log(`📊 Found ${textVersions.length} text versions for bill`);
@@ -66,7 +74,11 @@ class BillTextFetcherService {
         const selectedFormat = xmlFormat || textFormat || pdfFormat;
         
         if (!selectedFormat) {
-          throw new Error('No suitable text format found for this bill');
+          console.warn(`⚠️ No suitable text format found for bill ${congress}-${billType}-${billNumber}`);
+          return {
+            success: false,
+            message: `No suitable text format available for bill ${congress}-${billType}-${billNumber}`
+          };
         }
         
         console.log(`🔍 Using format: ${selectedFormat.type}, URL: ${selectedFormat.url}`);
@@ -98,7 +110,11 @@ class BillTextFetcherService {
         
         // Step 5: Validate the content
         if (!this.validateTextContent(textContent, selectedFormat.type)) {
-          throw new Error('Invalid or empty bill text content');
+          console.warn(`⚠️ Invalid or empty bill text content for ${congress}-${billType}-${billNumber}`);
+          return {
+            success: false,
+            message: `Invalid or empty text content for bill ${congress}-${billType}-${billNumber}`
+          };
         }
         
         // Step 6: Store in database

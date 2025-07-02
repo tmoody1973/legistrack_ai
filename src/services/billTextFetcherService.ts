@@ -1,4 +1,5 @@
 import { congressApiService } from './congressApiService';
+import { billFullTextService } from './billFullTextService';
 import { supabase } from '../lib/supabase';
 
 class BillTextFetcherService {
@@ -23,142 +24,46 @@ class BillTextFetcherService {
       try {
         console.log(`🔍 Fetching bill text for ${congress}-${billType}-${billNumber} (attempt ${retryCount + 1})...`);
         
-        // Step 1: Get available text versions
-        const textVersionsResponse = await congressApiService.makeRequest(
-          `/bill/${congress}/${billType.toLowerCase()}/${billNumber}/text`
-        );
+        const billId = `${congress}-${billType.toUpperCase()}-${billNumber}`;
         
-        // Check if textVersions exists and is not empty
-        if (!textVersionsResponse || !textVersionsResponse.textVersions) {
-          console.warn(`⚠️ No text versions found for bill ${congress}-${billType}-${billNumber}`);
+        // Use billFullTextService to get the full text URL with proper CORS handling
+        const urlResult = await billFullTextService.getFullTextUrl(billId);
+        
+        if (!urlResult.success) {
+          console.warn(`⚠️ ${urlResult.message} for bill ${billId}`);
           
           // Update the bill to indicate no text is available
-          const billId = `${congress}-${billType.toUpperCase()}-${billNumber}`;
-          await this.updateBillWithNoTextAvailable(billId);
+          await this.updateBillWithNoTextAvailable(billId, urlResult.message);
           
           return {
             success: false,
-            message: `No text versions found for this bill`
+            message: urlResult.message
           };
         }
         
-        // Get text versions as array
-        const textVersions = Array.isArray(textVersionsResponse.textVersions) 
-          ? textVersionsResponse.textVersions 
-          : [textVersionsResponse.textVersions];
+        console.log(`📄 Found text URL: ${urlResult.url}`);
         
-        if (textVersions.length === 0) {
-          console.warn(`⚠️ Empty text versions array for bill ${congress}-${billType}-${billNumber}`);
+        // Use billFullTextService to get formatted text content with proper CORS handling
+        const contentResult = await billFullTextService.getFormattedTextContent(billId);
+        
+        if (!contentResult.success) {
+          console.warn(`⚠️ ${contentResult.message} for bill ${billId}`);
           
-          // Update the bill to indicate no text is available
-          const billId = `${congress}-${billType.toUpperCase()}-${billNumber}`;
-          await this.updateBillWithNoTextAvailable(billId);
-          
-          return {
-            success: false,
-            message: `No text versions available for this bill`
-          };
-        }
-        
-        console.log(`📊 Found ${textVersions.length} text versions for bill`);
-        
-        // Step 2: Choose the most recent version (first in array)
-        const latestVersion = textVersions[0];
-        console.log(`📄 Using latest version: ${latestVersion.type} from ${latestVersion.date}`);
-        
-        // Check if formats exist
-        if (!latestVersion.formats || !Array.isArray(latestVersion.formats) || latestVersion.formats.length === 0) {
-          console.warn(`⚠️ No formats available for bill ${congress}-${billType}-${billNumber}`);
-          
-          // Update the bill to indicate no text formats are available
-          const billId = `${congress}-${billType.toUpperCase()}-${billNumber}`;
-          await this.updateBillWithNoTextAvailable(billId, "No text formats available");
+          // Update the bill to indicate text content could not be retrieved
+          await this.updateBillWithNoTextAvailable(billId, contentResult.message);
           
           return {
             success: false,
-            message: `No text formats available for this bill`
-          };
-        }
-        
-        // Step 3: Find the XML formatted version
-        const xmlFormat = latestVersion.formats.find((format: any) => 
-          format.type === 'Formatted XML' || format.type === 'XML'
-        );
-        
-        // Fallback to other formats if XML not available
-        const textFormat = xmlFormat || latestVersion.formats.find((format: any) => 
-          format.type === 'Formatted Text' || format.type === 'Text'
-        );
-        
-        // Last resort: PDF
-        const pdfFormat = textFormat || latestVersion.formats.find((format: any) => 
-          format.type === 'PDF'
-        );
-        
-        // Use the best available format
-        const selectedFormat = xmlFormat || textFormat || pdfFormat;
-        
-        if (!selectedFormat) {
-          console.warn(`⚠️ No suitable text format found for bill ${congress}-${billType}-${billNumber}`);
-          
-          // Update the bill to indicate no suitable format is available
-          const billId = `${congress}-${billType.toUpperCase()}-${billNumber}`;
-          await this.updateBillWithNoTextAvailable(billId, "No suitable text format available");
-          
-          return {
-            success: false,
-            message: `No suitable text format available for this bill`
-          };
-        }
-        
-        console.log(`🔍 Using format: ${selectedFormat.type}, URL: ${selectedFormat.url}`);
-        
-        // Step 4: Fetch the actual bill text content
-        const textResponse = await fetch(selectedFormat.url, {
-          headers: {
-            'Accept': 'application/xml, text/xml, text/html, application/pdf, */*',
-            'User-Agent': 'LegisTrack-AI/1.0'
-          }
-        });
-        
-        if (!textResponse.ok) {
-          throw new Error(`Failed to fetch bill text: ${textResponse.status} ${textResponse.statusText}`);
-        }
-        
-        // Get content based on format
-        let textContent: string;
-        
-        if (selectedFormat.type === 'PDF') {
-          // For PDF, we can't extract text directly in the browser
-          // Just store the URL and indicate it's a PDF
-          textContent = `PDF format available at: ${selectedFormat.url}`;
-        } else {
-          // For XML and Text formats, get the text content
-          textContent = await textResponse.text();
-        }
-        
-        // Step 5: Validate the content
-        if (!this.validateTextContent(textContent, selectedFormat.type)) {
-          console.warn(`⚠️ Invalid or empty bill text content for ${congress}-${billType}-${billNumber}`);
-          
-          // Update the bill to indicate invalid content
-          const billId = `${congress}-${billType.toUpperCase()}-${billNumber}`;
-          await this.updateBillWithNoTextAvailable(billId, "Invalid or empty text content");
-          
-          return {
-            success: false,
-            message: `Invalid or empty text content for this bill`
+            message: contentResult.message
           };
         }
         
         // Step 6: Store in database
-        const billId = `${congress}-${billType.toUpperCase()}-${billNumber}`;
-        
         const { data, error } = await supabase
           .from('bills')
           .update({
-            full_text_url: selectedFormat.url,
-            full_text_content: textContent,
+            full_text_url: urlResult.url,
+            full_text_content: contentResult.content,
             updated_at: new Date().toISOString()
           })
           .eq('id', billId)
@@ -172,14 +77,11 @@ class BillTextFetcherService {
         
         return {
           success: true,
-          message: `Successfully fetched and stored ${selectedFormat.type} text for bill ${billId}`,
+          message: `Successfully fetched and stored text for bill ${billId}`,
           data: {
             billId,
-            format: selectedFormat.type,
-            versionType: latestVersion.type,
-            versionDate: latestVersion.date,
-            contentLength: textContent.length,
-            url: selectedFormat.url
+            contentLength: contentResult.content.length,
+            url: urlResult.url
           }
         };
       } catch (error) {
@@ -236,42 +138,6 @@ class BillTextFetcherService {
     } catch (error) {
       console.warn(`⚠️ Error updating bill with no-text message:`, error);
     }
-  }
-
-  /**
-   * Validate text content based on format
-   * @param content Text content to validate
-   * @param format Format of the content
-   * @returns True if content is valid, false otherwise
-   */
-  private validateTextContent(content: string, format: string): boolean {
-    if (!content || content.trim().length === 0) {
-      return false;
-    }
-    
-    // For XML, check if it's valid XML
-    if (format === 'Formatted XML' || format === 'XML') {
-      try {
-        // Check for basic XML structure
-        return content.includes('<?xml') || content.includes('<') && content.includes('>');
-      } catch (error) {
-        console.warn('Invalid XML content:', error);
-        return false;
-      }
-    }
-    
-    // For HTML, check if it's valid HTML
-    if (format === 'Formatted Text' || format === 'Text') {
-      return content.includes('<html') || content.includes('<body') || content.includes('<div');
-    }
-    
-    // For PDF URL reference, just check if it's not empty
-    if (format === 'PDF') {
-      return content.includes('PDF format available at:');
-    }
-    
-    // Default validation: content must be at least 100 characters
-    return content.length > 100;
   }
 
   /**

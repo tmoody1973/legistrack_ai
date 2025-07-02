@@ -15,6 +15,7 @@ import { SyncDashboard } from '../components/debug/SyncDashboard';
 import { billSyncService } from '../services/billSyncService';
 import { TaggingDebugPanel } from '../components/debug/TaggingDebugPanel';
 import { aiTaggingService } from '../services/aiTaggingService';
+import { billTextFetcherService } from '../services/billTextFetcherService';
 
 export const DebugPage: React.FC = () => {
   const [importingSubjects, setImportingSubjects] = useState(false);
@@ -37,6 +38,8 @@ export const DebugPage: React.FC = () => {
   const [syncServiceResult, setSyncServiceResult] = useState<any>(null);
   const [processingTags, setProcessingTags] = useState(false);
   const [tagsResult, setTagsResult] = useState<any>(null);
+  const [fetchingBillText, setFetchingBillText] = useState(false);
+  const [billTextResult, setBillTextResult] = useState<any>(null);
 
   const handleImportSubjects = async () => {
     try {
@@ -120,6 +123,23 @@ export const DebugPage: React.FC = () => {
       });
     } finally {
       setUpdatingFullText(false);
+    }
+  };
+
+  const handleFetchBillText = async () => {
+    try {
+      setFetchingBillText(true);
+      setBillTextResult(null);
+      
+      const result = await billTextFetcherService.processMissingBillText(5);
+      setBillTextResult(result);
+    } catch (error) {
+      setBillTextResult({
+        success: false,
+        message: `Error fetching bill text: ${error.message}`
+      });
+    } finally {
+      setFetchingBillText(false);
     }
   };
 
@@ -266,6 +286,93 @@ export const DebugPage: React.FC = () => {
         </div>
         
         <div className="space-y-8">
+          {/* NEW: Bill Text Fetcher Panel */}
+          <div className="bg-white rounded-lg border border-gray-200 p-6">
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h2 className="text-xl font-semibold text-gray-900 flex items-center">
+                  <FileText className="w-5 h-5 mr-2 text-primary-500" />
+                  Bill Text Fetcher
+                </h2>
+                <p className="text-gray-600">Fetch and store full text of bills from Congress.gov API</p>
+              </div>
+              
+              <Button 
+                onClick={handleFetchBillText} 
+                disabled={fetchingBillText}
+                variant="primary"
+              >
+                {fetchingBillText ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Fetching...
+                  </>
+                ) : (
+                  <>
+                    <FileText className="w-4 h-4 mr-2" />
+                    Fetch Bill Text
+                  </>
+                )}
+              </Button>
+            </div>
+            
+            {/* Bill Text Result */}
+            {billTextResult && (
+              <div className={`p-4 rounded-lg border ${
+                billTextResult.success 
+                  ? 'bg-success-50 border-success-200 text-success-700' 
+                  : 'bg-error-50 border-error-200 text-error-700'
+              }`}>
+                <div className="flex items-center space-x-2 mb-2">
+                  {billTextResult.success ? (
+                    <CheckCircle className="w-5 h-5 flex-shrink-0" />
+                  ) : (
+                    <AlertCircle className="w-5 h-5 flex-shrink-0" />
+                  )}
+                  <div>
+                    <p className="font-medium">
+                      {billTextResult.success 
+                        ? `Successfully processed ${billTextResult.successCount} bills` 
+                        : `Failed to process bills: ${billTextResult.failureCount} failures`}
+                    </p>
+                    {billTextResult.details && billTextResult.details.length > 0 && (
+                      <div className="mt-2 text-sm">
+                        <p className="font-medium">Details:</p>
+                        <ul className="list-disc list-inside">
+                          {billTextResult.details.slice(0, 3).map((detail: any, index: number) => (
+                            <li key={index}>
+                              {detail.billId}: {detail.success ? '✅' : '❌'} {detail.message}
+                            </li>
+                          ))}
+                          {billTextResult.details.length > 3 && (
+                            <li>...and {billTextResult.details.length - 3} more</li>
+                          )}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+            
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mt-4">
+              <h3 className="font-medium text-blue-800 mb-2 flex items-center">
+                <FileText className="w-4 h-4 mr-2" />
+                About Bill Text Fetcher
+              </h3>
+              <ul className="text-sm text-blue-700 space-y-1">
+                <li>• <strong>Direct API Access</strong>: Fetches bill text directly from Congress.gov API</li>
+                <li>• <strong>XML Format Priority</strong>: Prioritizes XML format for consistent parsing</li>
+                <li>• <strong>Fallback Formats</strong>: Falls back to Text or PDF if XML is unavailable</li>
+                <li>• <strong>Retry Logic</strong>: Implements automatic retries for failed requests</li>
+                <li>• <strong>Content Validation</strong>: Validates text content before storage</li>
+                <li>• <strong>Batch Processing</strong>: Can process multiple bills in a single operation</li>
+                <li>• <strong>Error Handling</strong>: Comprehensive error handling and logging</li>
+                <li>• <strong>Database Storage</strong>: Stores text in the bills table for AI analysis</li>
+              </ul>
+            </div>
+          </div>
+          
           {/* NEW: AI Tagging Debug Panel */}
           <TaggingDebugPanel />
           

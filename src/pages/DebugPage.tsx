@@ -40,6 +40,8 @@ export const DebugPage: React.FC = () => {
   const [tagsResult, setTagsResult] = useState<any>(null);
   const [fetchingBillText, setFetchingBillText] = useState(false);
   const [billTextResult, setBillTextResult] = useState<any>(null);
+  const [fetchingHR1, setFetchingHR1] = useState(false);
+  const [hr1Result, setHR1Result] = useState<any>(null);
 
   const handleImportSubjects = async () => {
     try {
@@ -140,6 +142,70 @@ export const DebugPage: React.FC = () => {
       });
     } finally {
       setFetchingBillText(false);
+    }
+  };
+
+  const handleFetchHR1 = async () => {
+    try {
+      setFetchingHR1(true);
+      setHR1Result(null);
+      
+      // Create HR 1 in database if it doesn't exist
+      const { data: existingBill } = await supabase
+        .from('bills')
+        .select('id')
+        .eq('id', '119-HR-1')
+        .maybeSingle();
+      
+      if (!existingBill) {
+        // Create a basic record for HR 1
+        await supabase
+          .from('bills')
+          .insert({
+            id: '119-HR-1',
+            congress: 119,
+            bill_type: 'HR',
+            number: 1,
+            title: 'One Big Beautiful Bill Act',
+            short_title: 'One Big Beautiful Bill Act',
+            introduced_date: '2025-01-03',
+            status: 'Introduced',
+            latest_action: {
+              date: '2025-01-03',
+              text: 'Introduced in House'
+            },
+            sponsors: [{
+              bioguide_id: 'S000000',
+              full_name: 'Speaker of the House',
+              party: 'R',
+              state: 'DC'
+            }],
+            subjects: ['Government operations and politics'],
+            policy_area: 'Government operations and politics',
+            congress_url: 'https://www.congress.gov/bill/119th-congress/house-bill/1'
+          });
+        
+        console.log('✅ Created HR 1 record in database');
+      }
+      
+      // Fetch the full text
+      const result = await billTextFetcherService.fetchSpecificBillText('119-HR-1');
+      
+      setHR1Result(result);
+      
+      if (result.success && result.content) {
+        console.log('✅ Successfully fetched HR 1 text');
+      } else {
+        console.error('❌ Failed to fetch HR 1 text:', result.message);
+      }
+    } catch (error) {
+      console.error('❌ Error fetching HR 1:', error);
+      setHR1Result({
+        success: false,
+        message: `Error fetching HR 1: ${error.message}`
+      });
+    } finally {
+      setFetchingHR1(false);
     }
   };
 
@@ -286,6 +352,80 @@ export const DebugPage: React.FC = () => {
         </div>
         
         <div className="space-y-8">
+          {/* HR 1 Test Panel */}
+          <div className="bg-white rounded-lg border border-gray-200 p-6">
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h2 className="text-xl font-semibold text-gray-900 flex items-center">
+                  <FileText className="w-5 h-5 mr-2 text-primary-500" />
+                  HR 1 "One Big Beautiful Bill Act" Test
+                </h2>
+                <p className="text-gray-600">Test fetching the full text of HR 1 from Congress.gov</p>
+              </div>
+              
+              <Button 
+                onClick={handleFetchHR1} 
+                disabled={fetchingHR1}
+                variant="primary"
+              >
+                {fetchingHR1 ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Fetching HR 1...
+                  </>
+                ) : (
+                  <>
+                    <FileText className="w-4 h-4 mr-2" />
+                    Fetch HR 1 Text
+                  </>
+                )}
+              </Button>
+            </div>
+            
+            {/* HR 1 Result */}
+            {hr1Result && (
+              <div className={`p-4 rounded-lg border ${
+                hr1Result.success 
+                  ? 'bg-success-50 border-success-200 text-success-700' 
+                  : 'bg-error-50 border-error-200 text-error-700'
+              }`}>
+                <div className="flex items-center space-x-2 mb-2">
+                  {hr1Result.success ? (
+                    <CheckCircle className="w-5 h-5 flex-shrink-0" />
+                  ) : (
+                    <AlertCircle className="w-5 h-5 flex-shrink-0" />
+                  )}
+                  <div>
+                    <p className="font-medium">{hr1Result.message}</p>
+                    {hr1Result.success && hr1Result.content && (
+                      <div className="mt-2">
+                        <p className="text-sm">Content length: {hr1Result.content.length} characters</p>
+                        <div className="mt-2 p-2 bg-white rounded border border-success-200 max-h-32 overflow-y-auto">
+                          <pre className="text-xs whitespace-pre-wrap">{hr1Result.content.substring(0, 500)}...</pre>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+            
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mt-4">
+              <h3 className="font-medium text-blue-800 mb-2 flex items-center">
+                <FileText className="w-4 h-4 mr-2" />
+                About HR 1 Test
+              </h3>
+              <ul className="text-sm text-blue-700 space-y-1">
+                <li>• <strong>Direct URL Access</strong>: Uses the direct URL to HR 1 text</li>
+                <li>• <strong>HTML Format</strong>: Fetches the HTML version of the bill</li>
+                <li>• <strong>Database Storage</strong>: Stores the full text in the database</li>
+                <li>• <strong>Error Handling</strong>: Handles CORS and network issues</li>
+                <li>• <strong>Automatic Creation</strong>: Creates HR 1 record if it doesn't exist</li>
+                <li>• <strong>Direct URL</strong>: https://www.congress.gov/119/bills/hr1/BILLS-119hr1eas.htm</li>
+              </ul>
+            </div>
+          </div>
+          
           {/* NEW: Bill Text Fetcher Panel */}
           <div className="bg-white rounded-lg border border-gray-200 p-6">
             <div className="flex items-center justify-between mb-6">

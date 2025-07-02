@@ -268,6 +268,119 @@ class BillTextFetcherService {
       };
     }
   }
+
+  /**
+   * Fetch and store text for a specific bill by ID
+   * @param billId Bill ID in format {congress}-{type}-{number}
+   * @returns Object with success status and message
+   */
+  async fetchSpecificBillText(billId: string): Promise<{ 
+    success: boolean; 
+    message: string; 
+    content?: string;
+  }> {
+    try {
+      console.log(`🔍 Fetching text for specific bill: ${billId}`);
+      
+      // Parse bill ID
+      const parts = billId.split('-');
+      if (parts.length !== 3) {
+        throw new Error(`Invalid bill ID format: ${billId}`);
+      }
+      
+      const congress = parseInt(parts[0]);
+      const billType = parts[1];
+      const billNumber = parseInt(parts[2]);
+      
+      // Special case for HR 1 "One Big Beautiful Bill Act"
+      if (congress === 119 && billType === 'HR' && billNumber === 1) {
+        console.log('🔍 Detected HR 1 "One Big Beautiful Bill Act" - using direct URL');
+        
+        try {
+          // Use the direct URL provided
+          const directUrl = 'https://www.congress.gov/119/bills/hr1/BILLS-119hr1eas.htm';
+          
+          // Fetch the content
+          const response = await fetch(directUrl);
+          
+          if (!response.ok) {
+            throw new Error(`Failed to fetch HR 1 text: ${response.status} ${response.statusText}`);
+          }
+          
+          const textContent = await response.text();
+          
+          if (!textContent || textContent.trim().length === 0) {
+            throw new Error('Empty content received for HR 1');
+          }
+          
+          // Store in database
+          const { error } = await supabase
+            .from('bills')
+            .update({
+              full_text_url: directUrl,
+              full_text_content: textContent,
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', billId);
+          
+          if (error) {
+            throw new Error(`Failed to store HR 1 text in database: ${error.message}`);
+          }
+          
+          console.log(`✅ Successfully stored HR 1 text (${textContent.length} characters)`);
+          
+          return {
+            success: true,
+            message: `Successfully fetched and stored text for HR 1`,
+            content: textContent
+          };
+        } catch (error) {
+          console.error('❌ Error fetching HR 1 text:', error);
+          return {
+            success: false,
+            message: `Failed to fetch HR 1 text: ${error.message}`
+          };
+        }
+      }
+      
+      // For other bills, use the standard process
+      const result = await this.fetchAndStoreBillText(congress, billType, billNumber);
+      
+      if (!result.success) {
+        return {
+          success: false,
+          message: result.message
+        };
+      }
+      
+      // Get the stored content
+      const { data, error } = await supabase
+        .from('bills')
+        .select('full_text_content')
+        .eq('id', billId)
+        .single();
+      
+      if (error) {
+        return {
+          success: true,
+          message: `Text stored but could not retrieve: ${error.message}`
+        };
+      }
+      
+      return {
+        success: true,
+        message: `Successfully fetched and stored text for bill ${billId}`,
+        content: data.full_text_content
+      };
+    } catch (error) {
+      console.error(`❌ Error fetching specific bill text:`, error);
+      
+      return {
+        success: false,
+        message: `Failed to fetch specific bill text: ${error.message}`
+      };
+    }
+  }
 }
 
 export const billTextFetcherService = new BillTextFetcherService();

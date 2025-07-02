@@ -29,8 +29,13 @@ class BillTextFetcherService {
         );
         
         // Check if textVersions exists and is not empty
-        if (!textVersionsResponse?.textVersions) {
+        if (!textVersionsResponse || !textVersionsResponse.textVersions) {
           console.warn(`⚠️ No text versions found for bill ${congress}-${billType}-${billNumber}`);
+          
+          // Update the bill to indicate no text is available
+          const billId = `${congress}-${billType.toUpperCase()}-${billNumber}`;
+          await this.updateBillWithNoTextAvailable(billId);
+          
           return {
             success: false,
             message: `No text versions found for this bill`
@@ -44,6 +49,11 @@ class BillTextFetcherService {
         
         if (textVersions.length === 0) {
           console.warn(`⚠️ Empty text versions array for bill ${congress}-${billType}-${billNumber}`);
+          
+          // Update the bill to indicate no text is available
+          const billId = `${congress}-${billType.toUpperCase()}-${billNumber}`;
+          await this.updateBillWithNoTextAvailable(billId);
+          
           return {
             success: false,
             message: `No text versions available for this bill`
@@ -59,6 +69,11 @@ class BillTextFetcherService {
         // Check if formats exist
         if (!latestVersion.formats || !Array.isArray(latestVersion.formats) || latestVersion.formats.length === 0) {
           console.warn(`⚠️ No formats available for bill ${congress}-${billType}-${billNumber}`);
+          
+          // Update the bill to indicate no text formats are available
+          const billId = `${congress}-${billType.toUpperCase()}-${billNumber}`;
+          await this.updateBillWithNoTextAvailable(billId, "No text formats available");
+          
           return {
             success: false,
             message: `No text formats available for this bill`
@@ -85,6 +100,11 @@ class BillTextFetcherService {
         
         if (!selectedFormat) {
           console.warn(`⚠️ No suitable text format found for bill ${congress}-${billType}-${billNumber}`);
+          
+          // Update the bill to indicate no suitable format is available
+          const billId = `${congress}-${billType.toUpperCase()}-${billNumber}`;
+          await this.updateBillWithNoTextAvailable(billId, "No suitable text format available");
+          
           return {
             success: false,
             message: `No suitable text format available for this bill`
@@ -98,8 +118,7 @@ class BillTextFetcherService {
           headers: {
             'Accept': 'application/xml, text/xml, text/html, application/pdf, */*',
             'User-Agent': 'LegisTrack-AI/1.0'
-          },
-          timeout: 30000 // 30 second timeout
+          }
         });
         
         if (!textResponse.ok) {
@@ -121,6 +140,11 @@ class BillTextFetcherService {
         // Step 5: Validate the content
         if (!this.validateTextContent(textContent, selectedFormat.type)) {
           console.warn(`⚠️ Invalid or empty bill text content for ${congress}-${billType}-${billNumber}`);
+          
+          // Update the bill to indicate invalid content
+          const billId = `${congress}-${billType.toUpperCase()}-${billNumber}`;
+          await this.updateBillWithNoTextAvailable(billId, "Invalid or empty text content");
+          
           return {
             success: false,
             message: `Invalid or empty text content for this bill`
@@ -164,6 +188,10 @@ class BillTextFetcherService {
         retryCount++;
         
         if (retryCount >= this.MAX_RETRIES) {
+          // Update the bill to indicate text fetching failed
+          const billId = `${congress}-${billType.toUpperCase()}-${billNumber}`;
+          await this.updateBillWithNoTextAvailable(billId, `Failed after ${this.MAX_RETRIES} attempts: ${error.message}`);
+          
           return {
             success: false,
             message: `Failed to fetch bill text after ${this.MAX_RETRIES} attempts: ${error.message}`
@@ -180,6 +208,34 @@ class BillTextFetcherService {
       success: false,
       message: `Failed to fetch bill text after ${this.MAX_RETRIES} attempts due to unknown error`
     };
+  }
+
+  /**
+   * Update bill record to indicate no text is available
+   * @param billId Bill ID
+   * @param reason Optional reason why text is not available
+   */
+  private async updateBillWithNoTextAvailable(billId: string, reason: string = "No text available"): Promise<void> {
+    try {
+      const message = `Text has not been received for ${billId}. Reason: ${reason}`;
+      console.log(`📝 Updating bill ${billId} with message: ${message}`);
+      
+      const { error } = await supabase
+        .from('bills')
+        .update({
+          full_text_content: message,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', billId);
+      
+      if (error) {
+        console.warn(`⚠️ Failed to update bill ${billId} with no-text message:`, error);
+      } else {
+        console.log(`✅ Updated bill ${billId} with no-text message`);
+      }
+    } catch (error) {
+      console.warn(`⚠️ Error updating bill with no-text message:`, error);
+    }
   }
 
   /**
@@ -337,7 +393,7 @@ class BillTextFetcherService {
       return {
         success: false,
         successCount: 0,
-        failureCount: 0,
+        failureCount: 1,
         details: [{
           billId: 'batch',
           success: false,

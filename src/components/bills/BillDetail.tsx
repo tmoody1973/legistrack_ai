@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, Calendar, Users, Building, Tag, ExternalLink, TrendingUp, Loader2 } from 'lucide-react';
+import { ArrowLeft, Calendar, Users, Building, Tag, ExternalLink, TrendingUp, Loader2, FileText } from 'lucide-react';
 import { Button } from '../common/Button';
 import { billDataSyncService } from '../../services/billDataSyncService';
 import type { Bill } from '../../types';
@@ -12,6 +12,8 @@ interface BillDetailProps {
 export const BillDetail: React.FC<BillDetailProps> = ({ bill, onBack }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [currentBill, setCurrentBill] = useState<Bill>(bill);
+  const [showFullText, setShowFullText] = useState(false);
+  const [loadingFullText, setLoadingFullText] = useState(false);
 
   // Sync bill data when component mounts
   useEffect(() => {
@@ -67,6 +69,15 @@ export const BillDetail: React.FC<BillDetailProps> = ({ bill, onBack }) => {
     return 'bg-primary-100 text-primary-700';
   };
 
+  const handleViewFullText = () => {
+    setLoadingFullText(true);
+    setShowFullText(true);
+    // Simulate loading time if needed
+    setTimeout(() => {
+      setLoadingFullText(false);
+    }, 500);
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -112,8 +123,17 @@ export const BillDetail: React.FC<BillDetailProps> = ({ bill, onBack }) => {
           </div>
           
           <div className="flex items-center space-x-3">
-            <Button variant="primary">
-              Track Bill
+            <Button 
+              variant="primary"
+              onClick={handleViewFullText}
+              disabled={loadingFullText}
+            >
+              {loadingFullText ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <FileText className="w-4 h-4 mr-2" />
+              )}
+              View Full Text
             </Button>
             {currentBill.congress_url && (
               <Button variant="outline" asChild>
@@ -155,6 +175,71 @@ export const BillDetail: React.FC<BillDetailProps> = ({ bill, onBack }) => {
           </div>
         )}
       </div>
+
+      {/* Full Text Section (conditionally rendered) */}
+      {showFullText && (
+        <div className="bg-white rounded-lg border border-gray-200 p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-semibold text-gray-900 flex items-center">
+              <FileText className="w-5 h-5 mr-2 text-primary-500" />
+              Full Bill Text
+            </h2>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => setShowFullText(false)}
+            >
+              Hide Full Text
+            </Button>
+          </div>
+          
+          {loadingFullText ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="w-8 h-8 animate-spin text-primary-500 mr-3" />
+              <p className="text-gray-600">Loading full bill text...</p>
+            </div>
+          ) : currentBill.full_text_content ? (
+            <div className="bg-gray-50 rounded-lg p-4 border border-gray-200 max-h-[600px] overflow-y-auto">
+              <pre className="whitespace-pre-wrap font-mono text-sm text-gray-800">
+                {currentBill.full_text_content}
+              </pre>
+            </div>
+          ) : currentBill.full_text_url ? (
+            <div className="text-center py-8">
+              <p className="text-gray-700 mb-4">
+                Full text is available but not stored in the database. You can view it on Congress.gov.
+              </p>
+              <Button asChild>
+                <a href={currentBill.full_text_url} target="_blank" rel="noopener noreferrer">
+                  <ExternalLink className="w-4 h-4 mr-2" />
+                  View Full Text on Congress.gov
+                </a>
+              </Button>
+            </div>
+          ) : (
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6 text-center">
+              <FileText className="w-12 h-12 text-yellow-500 mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-yellow-800 mb-2">Full Text Not Available</h3>
+              <p className="text-yellow-700 mb-4">
+                The full text for this bill is not available at this time. This may be because:
+              </p>
+              <ul className="text-left text-yellow-700 max-w-md mx-auto mb-4 space-y-1">
+                <li>• The bill was recently introduced and text hasn't been published</li>
+                <li>• The text is still being processed by Congress.gov</li>
+                <li>• There was an error retrieving the text from Congress.gov</li>
+              </ul>
+              {currentBill.congress_url && (
+                <Button variant="outline" asChild>
+                  <a href={currentBill.congress_url} target="_blank" rel="noopener noreferrer">
+                    <ExternalLink className="w-4 h-4 mr-2" />
+                    Check on Congress.gov
+                  </a>
+                </Button>
+              )}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Bill Summary */}
       {currentBill.summary && (
